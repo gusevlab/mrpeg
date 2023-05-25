@@ -1,6 +1,6 @@
 import logging
 
-from . import cli, peg, signal, closest, log
+from . import cli, closest, log, peg, signal
 
 
 # next 4 lines taken from

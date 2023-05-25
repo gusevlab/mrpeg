@@ -84,7 +84,7 @@ copyright = "2023, MancusoLab"
 # If you don’t need the separation provided between version and release,
 # just set them both to the same value.
 try:
-    from sushie import __version__ as version
+    from mrpeg import __version__ as version
 except ImportError:
     version = ""
 
@@ -101,19 +101,18 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", ".venv"]
 autodoc_class_signature = "separated"
 
 python_apigen_modules = {
-    "sushie.infer": "api/infer/",
-    "sushie.utils": "api/utils/",
-    "sushie.io": "api/io/",
-    "sushie.cli": "api/cli/",
+    "mrpeg.signal": "api/signal/",
+    "mrpeg.closest": "api/closest/",
+    "mrpeg.peg": "api/peg/",
+    "mrpeg.cli": "api/cli/",
 }
 
 python_apigen_default_groups = [
-    (r".*:sushie.cli.*", "CLI Public-members"),
-    (r".*:sushie.utils.*", "Utils Public-members"),
-    (r".*:sushie.infer.*", "Infer Public-members"),
-    (r"class:sushie.infer.*", "Infer Classes"),
-    (r".*:sushie.io.*", "IO Public-members"),
-    (r"class:sushie.io.*", "IO Classes"),
+    (r".*:mrpeg.cli.*", "CLI Public-members"),
+    (r".*:mrpeg.signal.*", "Utils Public-members"),
+    (r".*:mrpeg.closest.*", "IO Public-members"),
+    (r".*:mrpeg.peg.*", "Infer Public-members"),
+    (r"class:mrpeg.peg.*", "Infer Classes"),
     # (r"method:.*\.__(str|repr)__", "String representation"),
     # ("method:.*", "Methods"),
     # ("classmethod:.*", "Class methods"),
@@ -196,9 +195,9 @@ html_theme_options = {
     "icon": {
         "repo": "fontawesome/brands/github",
     },
-    "site_url": "https://mancusolab.github.io/sushie/",
-    "repo_url": "https://github.com/mancusolab/sushie/",
-    "repo_name": "SuShiE",
+    "site_url": "https://gusevlab.github.io/mrpeg/",
+    "repo_url": "https://gusevlab.com/gusevlab/mrpeg/",
+    "repo_name": "Mr PEG",
     "repo_type": "github",
     "edit_uri": "blob/main/docs",
     "globaltoc_collapse": True,
@@ -242,7 +241,7 @@ html_theme_options = {
     "version_dropdown": True,
     # "version_info": [
     #     {
-    #         "version": "https://mancusolab.github.io/sushie",
+    #         "version": "https://gusevlab.github.io/mrpeg",
     #         "title": "Github Pages",
     #         "aliases": [],
     #     },
@@ -253,18 +252,18 @@ html_theme_options = {
     "social": [
         {
             "icon": "fontawesome/brands/github",
-            "link": "https://github.com/mancusolab/sushie",
+            "link": "https://github.com/gusevlab/mrpeg",
         },
         {
             "icon": "fontawesome/brands/python",
-            "link": "https://pypi.org/project/sushie/",
+            "link": "https://pypi.org/project/mrpeg/",
         },
     ],
     # END: social icons
 }
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = "SuShiE-doc"
+htmlhelp_basename = "MrPEG-doc"
 
 # -- General options
 # If this is True, todo emits a warning for each TODO entries. The default is False.

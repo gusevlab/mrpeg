@@ -1,7 +1,9 @@
-import warnings
 import os
+import warnings
+
 import numpy as np
 from intervaltree import IntervalTree
+
 from . import log
 
 with warnings.catch_warnings():
@@ -18,29 +20,22 @@ __all__ = [
     "_summarize",
 ]
 
+
 def _parameter_check(
-        args,
+    args,
 ) -> None:
 
     if not os.path.exists(args.gwas):
-        raise ValueError(
-            "GWAS file is not found. Check your input."
-        )
+        raise ValueError("GWAS file is not found. Check your input.")
 
     if not os.path.exists(args.ref):
-        raise ValueError(
-            "Reference file is not found. Check your input."
-        )
+        raise ValueError("Reference file is not found. Check your input.")
 
     if not (args.keep is None or os.path.exists(args.ref)):
-        raise ValueError(
-            "Keep file is not found. Check your input."
-        )
+        raise ValueError("Keep file is not found. Check your input.")
 
     if args.window < 0:
-        raise ValueError(
-            "Invalid window input. Choose a positive number"
-        )
+        raise ValueError("Invalid window input. Choose a positive number")
 
     if args.threshold <= 0 or args.threshold > 1:
         raise ValueError(
@@ -48,7 +43,6 @@ def _parameter_check(
         )
 
     return None
-
 
 
 def _process_gwas(gwas, gwas_cols, n_chr, threshold):
@@ -60,11 +54,19 @@ def _process_gwas(gwas, gwas_cols, n_chr, threshold):
             "Specified GWAS columns are not in the GWAS data. Revisit the GWAS Data."
         )
 
-    df_gwas = df_gwas[gwas_cols].rename(columns={f"{gwas_cols[0]}": "CHR",
-                                                 f"{gwas_cols[1]}": "SNP",
-                                                 f"{gwas_cols[2]}": "BP",
-                                                 f"{gwas_cols[3]}": "Z"
-                                                 }).sort_values(by=["CHR", "BP"]).reset_index(drop=True)
+    df_gwas = (
+        df_gwas[gwas_cols]
+        .rename(
+            columns={
+                f"{gwas_cols[0]}": "CHR",
+                f"{gwas_cols[1]}": "SNP",
+                f"{gwas_cols[2]}": "BP",
+                f"{gwas_cols[3]}": "Z",
+            }
+        )
+        .sort_values(by=["CHR", "BP"])
+        .reset_index(drop=True)
+    )
 
     df_gwas[["CHR", "BP"]] = df_gwas[["CHR", "BP"]].astype(int)
 
@@ -80,10 +82,11 @@ def _process_gwas(gwas, gwas_cols, n_chr, threshold):
 
     if df_gwas.shape[0] == 0:
         raise ValueError(
-            f"GWAS data doesn't contain any SNPs after filtering on threshold."
+            "GWAS data doesn't contain any SNPs after filtering on threshold."
         )
 
     return df_gwas
+
 
 def _process_ref(ref, ref_cols, n_chr, keep, window):
 
@@ -100,11 +103,18 @@ def _process_ref(ref, ref_cols, n_chr, keep, window):
         ref_cols[2] = f"{ref_cols[2]}_2"
         df_ref.columns = ref_cols
 
-    df_ref = df_ref.rename(columns={f"{ref_cols[0]}": "CHR",
-                                                 f"{ref_cols[1]}": "TSS",
-                                                 f"{ref_cols[2]}": "TES",
-                                                 f"{ref_cols[3]}": "ANNO"
-                                                 }).sort_values(by=["CHR", "TSS", "TES"]).reset_index(drop=True)
+    df_ref = (
+        df_ref.rename(
+            columns={
+                f"{ref_cols[0]}": "CHR",
+                f"{ref_cols[1]}": "TSS",
+                f"{ref_cols[2]}": "TES",
+                f"{ref_cols[3]}": "ANNO",
+            }
+        )
+        .sort_values(by=["CHR", "TSS", "TES"])
+        .reset_index(drop=True)
+    )
 
     df_ref[["CHR", "TSS", "TES"]] = df_ref[["CHR", "TSS", "TES"]].astype(int)
 
@@ -124,7 +134,7 @@ def _process_ref(ref, ref_cols, n_chr, keep, window):
         df_ref = df_ref[df_ref["ANNO"].isin(df_keep[0])]
         if df_ref.shape[0] == 0:
             raise ValueError(
-                f"Annotation columns doesn't contain any annotations on the keep file."
+                "Annotation columns doesn't contain any annotations on the keep file."
             )
 
     return df_ref
@@ -135,17 +145,13 @@ def _annot_tree(df_gwas, df_ref, sep):
     anno_chrs = df_gwas.CHR.unique()
 
     # create interval tree to manage annotations
-    log.logger.info(
-        "Constructing interval tree for annotations"
-    )
+    log.logger.info("Constructing interval tree for annotations")
 
     tree = IntervalTree()
     res_full = []
     res_filter = []
     for n_chr in anno_chrs:
-        log.logger.info(
-            f"Annotating variants on chromosome {n_chr}"
-        )
+        log.logger.info(f"Annotating variants on chromosome {n_chr}")
 
         tmp_ref = df_ref[df_ref.CHR == n_chr]
         tmp_gwas = df_gwas[df_gwas.CHR == n_chr]
@@ -177,15 +183,23 @@ def _annot_tree(df_gwas, df_ref, sep):
 
 def _summarize(anno_snps):
 
-    result = anno_snps.groupby("NAME")["Z"].apply(lambda x: pd.Series({
-        "mean": np.mean(x ** 2),
-        "median": np.median(x ** 2),
-        "max": np.max(x ** 2),
-        "min": np.min(x ** 2),
-        "25%": np.percentile(x ** 2, 25),
-        "75%": np.percentile(x ** 2, 75),
-        "count": x.size,
-    })).unstack().reset_index()
+    result = (
+        anno_snps.groupby("NAME")["Z"]
+        .apply(
+            lambda x: pd.Series(
+                {
+                    "mean": np.mean(x ** 2),
+                    "median": np.median(x ** 2),
+                    "max": np.max(x ** 2),
+                    "min": np.min(x ** 2),
+                    "25%": np.percentile(x ** 2, 25),
+                    "75%": np.percentile(x ** 2, 75),
+                    "count": x.size,
+                }
+            )
+        )
+        .unstack()
+        .reset_index()
+    )
 
     return result
-

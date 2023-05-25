@@ -1,8 +1,7 @@
 import os
 import subprocess
 import warnings
-from typing import Any
-from typing import List, Tuple, NamedTuple
+from typing import Any, List, NamedTuple, Tuple
 
 import jax.numpy as jnp
 import jax.scipy.stats as stats
@@ -60,27 +59,19 @@ class CleanData(NamedTuple):
 
 
 def _parameter_check(
-        args,
+    args,
 ) -> None:
     if not os.path.exists(args.gwas):
-        raise ValueError(
-            "No GWAS file located. Check your input."
-        )
+        raise ValueError("No GWAS file located. Check your input.")
 
     if not os.path.exists(args.eqtl):
-        raise ValueError(
-            "No eQTL file located. Check your input."
-        )
+        raise ValueError("No eQTL file located. Check your input.")
 
     if not os.path.exists(args.perturb):
-        raise ValueError(
-            "No Perturb-Seq file located. Check your input."
-        )
+        raise ValueError("No Perturb-Seq file located. Check your input.")
 
     if not os.path.exists(args.plink):
-        raise ValueError(
-            "No plink file located. Check your input."
-        )
+        raise ValueError("No plink file located. Check your input.")
 
     if not os.path.isdir(args.temp):
         os.makedirs(args.temp)
@@ -91,50 +82,46 @@ def _parameter_check(
     return None
 
 
-def _prepare_gwas(gwas: str,
-                  gwas_cols: List) -> pd.DataFrame:
+def _prepare_gwas(gwas: str, gwas_cols: List) -> pd.DataFrame:
     df_gwas = pd.read_csv(gwas, sep="\t").dropna()
 
     if not all(col in df_gwas.columns for col in gwas_cols):
-        raise ValueError(
-            "The specified GWAS columns are not in the GWAS data."
-        )
+        raise ValueError("The specified GWAS columns are not in the GWAS data.")
 
-    log.logger.info(
-        f"GWAS contains {df_gwas.shape[0]} SNPs."
+    log.logger.info(f"GWAS contains {df_gwas.shape[0]} SNPs.")
+
+    df_gwas = df_gwas[gwas_cols].rename(
+        columns={
+            gwas_cols[0]: "CHR",
+            gwas_cols[1]: "SNP",
+            gwas_cols[2]: "A1_gwas",
+            gwas_cols[3]: "A0_gwas",
+            gwas_cols[4]: "BETA",
+            gwas_cols[5]: "SE",
+        }
     )
-
-    df_gwas = df_gwas[gwas_cols].rename(columns={
-        gwas_cols[0]: "CHR",
-        gwas_cols[1]: "SNP",
-        gwas_cols[2]: "A1_gwas",
-        gwas_cols[3]: "A0_gwas",
-        gwas_cols[4]: "BETA",
-        gwas_cols[5]: "SE"})
 
     return df_gwas
 
 
-def _prepare_eqtl(eqtl: str,
-                  eqtl_cols: List) -> pd.DataFrame:
+def _prepare_eqtl(eqtl: str, eqtl_cols: List) -> pd.DataFrame:
     df_eqtl = pd.read_csv(eqtl, sep="\t").dropna()
 
     if not all(col in df_eqtl.columns for col in eqtl_cols):
-        raise ValueError(
-            "The specified eQTL columns are not in the eQTL data."
-        )
+        raise ValueError("The specified eQTL columns are not in the eQTL data.")
 
-    log.logger.info(
-        f"eQTL contains {df_eqtl.shape[0]} SNPs."
+    log.logger.info(f"eQTL contains {df_eqtl.shape[0]} SNPs.")
+
+    df_eqtl = df_eqtl[eqtl_cols].rename(
+        columns={
+            eqtl_cols[0]: "CHR",
+            eqtl_cols[1]: "SNP",
+            eqtl_cols[2]: "A1_eqtl",
+            eqtl_cols[3]: "A0_eqtl",
+            eqtl_cols[4]: "Z_eqtl",
+            eqtl_cols[5]: "GENE",
+        }
     )
-
-    df_eqtl = df_eqtl[eqtl_cols].rename(columns={
-        eqtl_cols[0]: "CHR",
-        eqtl_cols[1]: "SNP",
-        eqtl_cols[2]: "A1_eqtl",
-        eqtl_cols[3]: "A0_eqtl",
-        eqtl_cols[4]: "Z_eqtl",
-        eqtl_cols[5]: "GENE"})
 
     return df_eqtl
 
@@ -143,7 +130,7 @@ def _prepare_perturb(perturb: str) -> Tuple[pd.DataFrame, List]:
     df_perturb = pd.read_csv(perturb, sep="\t")
     df_perturb = df_perturb.rename(columns={f"{df_perturb.columns[0]}": "GENE"})
     df_perturb = df_perturb.replace(jnp.nan, 0)
-    ds_genes = df_perturb.columns[1:df_perturb.shape[1]].tolist()
+    ds_genes = df_perturb.columns[1 : df_perturb.shape[1]].tolist()
 
     log.logger.info(
         f"Perturb matrix contains {df_perturb.shape[0]} perturbation genes and {df_perturb.shape[1]} downstream genes."
@@ -153,10 +140,10 @@ def _prepare_perturb(perturb: str) -> Tuple[pd.DataFrame, List]:
 
 
 def _allele_check(
-        baseA1: pd.Series,
-        baseA0: pd.Series,
-        compareA1: pd.Series,
-        compareA0: pd.Series,
+    baseA1: pd.Series,
+    baseA0: pd.Series,
+    compareA1: pd.Series,
+    compareA0: pd.Series,
 ) -> Tuple[jnp.ndarray, jnp.ndarray, jnp.ndarray]:
     correct = jnp.array(
         ((baseA1 == compareA1) * 1) * ((baseA0 == compareA0) * 1), dtype=int
@@ -182,16 +169,16 @@ class null_result(NamedTuple):
 
 
 def _process_raw(
-        gwas: str,
-        eqtl: str,
-        perturb: str,
-        plink: str,
-        gwas_cols: List,
-        eqtl_cols: List,
-        no_ld: bool,
-        ref_geno: str,
-        prune: List,
-        temp: str,
+    gwas: str,
+    eqtl: str,
+    perturb: str,
+    plink: str,
+    gwas_cols: List,
+    eqtl_cols: List,
+    no_ld: bool,
+    ref_geno: str,
+    prune: List,
+    temp: str,
 ) -> CleanData:
     # read in GWAS data
     df_gwas = _prepare_gwas(gwas, gwas_cols)
@@ -202,7 +189,11 @@ def _process_raw(
     # read in perturb data
     df_perturb, ds_genes = _prepare_perturb(perturb)
 
-    df_wk = df_eqtl[df_eqtl.GENE.isin(df_perturb.GENE)].sort_values(by=["CHR", "SNP"]).reset_index(drop=True)
+    df_wk = (
+        df_eqtl[df_eqtl.GENE.isin(df_perturb.GENE)]
+        .sort_values(by=["CHR", "SNP"])
+        .reset_index(drop=True)
+    )
     num_shared = len(df_wk.GENE.unique())
     chrs = df_wk["CHR"].unique()
 
@@ -219,22 +210,18 @@ def _process_raw(
     if len(ref_geno) > 1:
         ld_paths = [ref_geno[0] + str(n_chr) + ref_geno[1] for n_chr in chrs]
     else:
-        raise ValueError(
-            "Ref data does not contain separator '!'."
-        )
-
-
+        raise ValueError("Ref data does not contain separator '!'.")
 
     keep_snps = []
     inv_ld = []
 
     for idx in range(len(chrs)):
-        log.logger.info(
-            f"Processing data on chromosome {chrs[idx]}."
-        )
+        log.logger.info(f"Processing data on chromosome {chrs[idx]}.")
         bim, fam, bed = read_plink(f"{ld_paths[idx]}", verbose=False)
         bim.columns = ["CHR", "SNP", "CM", "BP", "A0_ref", "A1_ref", "i"]
-        and_logic = (df_wk.CHR.values == chrs[idx]) * 1 + df_wk.SNP.isin(bim.SNP).values * 1
+        and_logic = (df_wk.CHR.values == chrs[idx]) * 1 + df_wk.SNP.isin(
+            bim.SNP
+        ).values * 1
         df_snp = df_wk[and_logic == 2]
 
         df_snp = df_snp.merge(df_gwas, how="inner", on=["CHR", "SNP"])
@@ -244,32 +231,55 @@ def _process_raw(
             )
 
         # flip alleles
-        _, flip_idx, wrong_idx = _allele_check(df_snp["A1_gwas"].values, df_snp["A0_gwas"].values,
-                                               df_snp["A1_eqtl"].values, df_snp["A0_eqtl"].values)
+        _, flip_idx, wrong_idx = _allele_check(
+            df_snp["A1_gwas"].values,
+            df_snp["A0_gwas"].values,
+            df_snp["A1_eqtl"].values,
+            df_snp["A0_eqtl"].values,
+        )
 
         df_snp.loc[flip_idx, "Z_eqtl"] = -1 * df_snp.iloc[flip_idx, :]["Z_eqtl"].values
 
         if len(wrong_idx) != 0:
             df_snp = df_snp.drop(wrong_idx, axis=0)
 
-        df_snp = df_snp.merge(bim[["SNP", "A1_ref", "A0_ref", "i"]], how="left", on="SNP")
-        _, _, wrong_idx = _allele_check(df_snp["A1_gwas"].values, df_snp["A0_gwas"].values,
-                                        df_snp["A1_ref"].values, df_snp["A0_ref"].values)
+        df_snp = df_snp.merge(
+            bim[["SNP", "A1_ref", "A0_ref", "i"]], how="left", on="SNP"
+        )
+        _, _, wrong_idx = _allele_check(
+            df_snp["A1_gwas"].values,
+            df_snp["A0_gwas"].values,
+            df_snp["A1_ref"].values,
+            df_snp["A0_ref"].values,
+        )
 
         if len(wrong_idx) != 0:
             df_snp = df_snp.drop(index=wrong_idx)
 
         # we have cases that same SNPs are the top eQTL for multiple genes
         # using this way, we can make sure we contain as many genes as possible
-        df_snp = df_snp.groupby("GENE").apply(
-            lambda x: x.assign(abs_B=x["Z_eqtl"].abs()).nlargest(3, "abs_B")).reset_index(drop=True)
-        df_snp = df_snp.sort_values(by="Z_eqtl", key=lambda x: abs(x), ascending=False).drop_duplicates(subset="SNP")
-        df_snp = df_snp.groupby("GENE").apply(lambda x: x.loc[abs(x["Z_eqtl"]).idxmax()]).reset_index(drop=True)
+        df_snp = (
+            df_snp.groupby("GENE")
+            .apply(lambda x: x.assign(abs_B=x["Z_eqtl"].abs()).nlargest(3, "abs_B"))
+            .reset_index(drop=True)
+        )
+        df_snp = df_snp.sort_values(
+            by="Z_eqtl", key=lambda x: abs(x), ascending=False
+        ).drop_duplicates(subset="SNP")
+        df_snp = (
+            df_snp.groupby("GENE")
+            .apply(lambda x: x.loc[abs(x["Z_eqtl"]).idxmax()])
+            .reset_index(drop=True)
+        )
 
         if not no_ld:
             X = bed.compute().T[:, df_snp.i]
-            _, flip_idx, _ = _allele_check(df_snp["A1_gwas"].values, df_snp["A0_gwas"].values,
-                                           df_snp["A1_ref"].values, df_snp["A0_ref"].values)
+            _, flip_idx, _ = _allele_check(
+                df_snp["A1_gwas"].values,
+                df_snp["A0_gwas"].values,
+                df_snp["A1_ref"].values,
+                df_snp["A0_ref"].values,
+            )
 
             X[:, flip_idx] = 2 - X[:, flip_idx]
             X -= jnp.mean(X, axis=0)
@@ -277,12 +287,27 @@ def _process_raw(
             tmp_inv_ld = inv(X.T @ X / X.shape[0] + 1e-3 * jnp.eye(X.shape[1]))
             inv_ld.append(tmp_inv_ld)
         else:
-            df_snp["SNP"].to_csv(f"{temp}/extract.snp.id", index=False, header=False, sep="\t")
+            df_snp["SNP"].to_csv(
+                f"{temp}/extract.snp.id", index=False, header=False, sep="\t"
+            )
 
-            subprocess.run([plink, "--bfile", ld_paths[idx],
-                            "--indep-pairwise", str(prune[0]), str(prune[1]), str(prune[2]),
-                            "--extract", f"{temp}/extract.snp.id", "--out", f"{temp}/snp.{chrs[idx]}", "--silent"],
-                           stderr=subprocess.DEVNULL)
+            subprocess.run(
+                [
+                    plink,
+                    "--bfile",
+                    ld_paths[idx],
+                    "--indep-pairwise",
+                    str(prune[0]),
+                    str(prune[1]),
+                    str(prune[2]),
+                    "--extract",
+                    f"{temp}/extract.snp.id",
+                    "--out",
+                    f"{temp}/snp.{chrs[idx]}",
+                    "--silent",
+                ],
+                stderr=subprocess.DEVNULL,
+            )
 
             out_f = f"{temp}/snp.{chrs[idx]}.prune.in"
             if os.path.exists(out_f):
@@ -295,8 +320,8 @@ def _process_raw(
     df_wk = pd.concat(keep_snps).merge(df_perturb, how="inner", on="GENE")
 
     log.logger.info(
-        f"Successfully prepared {df_wk.shape[0]} perturbed genes on {len(df_wk.CHR.unique())}." +
-        f" Start running MR Peg on {len(ds_genes)} downstream genes."
+        f"Successfully prepared {df_wk.shape[0]} perturbed genes on {len(df_wk.CHR.unique())}."
+        + f" Start running MR Peg on {len(ds_genes)} downstream genes."
     )
 
     result = CleanData(
@@ -334,7 +359,11 @@ def _mrld(y, X, inv_ld, inv_sigma_g):
     # mrld egger
     egger_gamma = (oTo * xTy - oTx * oTy) / (oTo * xTx - oTx ** 2)
     alpha = (xTx * oTy - oTx * xTy) / (oTo * xTx - oTx ** 2)
-    epi_hat = cond_y[:, jnp.newaxis] - alpha * ones - jnp.einsum("ij,jk->ij", cond_X, egger_gamma.T)
+    epi_hat = (
+        cond_y[:, jnp.newaxis]
+        - alpha * ones
+        - jnp.einsum("ij,jk->ij", cond_X, egger_gamma.T)
+    )
     df = y.shape[0] - 2
     sigma_sq_hat = (1 / df) * jnp.einsum("ij,jk,ki->i", epi_hat.T, inv_sigma_g, epi_hat)
     se = jnp.sqrt(sigma_sq_hat * (oTo / (oTo * xTx - oTx ** 2)))
@@ -368,14 +397,14 @@ def _get_p(mr, null):
 
 
 def infer_peg(
-        beta: ArrayLike,
-        se: ArrayLike,
-        eqtl: ArrayLike,
-        perturb: ArrayLike,
-        inv_ld: ArrayLike,
-        no_permute: bool = False,
-        perm_number: int = 500,
-        seed: int = 12345,
+    beta: ArrayLike,
+    se: ArrayLike,
+    eqtl: ArrayLike,
+    perturb: ArrayLike,
+    inv_ld: ArrayLike,
+    no_permute: bool = False,
+    perm_number: int = 500,
+    seed: int = 12345,
 ) -> Array:
     """The main inference function for running SuShiE.
 
@@ -409,8 +438,12 @@ def infer_peg(
             "The number of permutation is low, and the estimate may be inaccurate."
         )
 
-    dim_fail = (beta.shape[0] != se.shape[0]) or (beta.shape[0] != eqtl.shape[0]) or (
-            beta.shape[0] != perturb.shape[0]) or (beta.shape[0] != inv_ld.shape[0])
+    dim_fail = (
+        (beta.shape[0] != se.shape[0])
+        or (beta.shape[0] != eqtl.shape[0])
+        or (beta.shape[0] != perturb.shape[0])
+        or (beta.shape[0] != inv_ld.shape[0])
+    )
 
     if dim_fail:
         raise ValueError(
@@ -441,8 +474,8 @@ def infer_peg(
         )
         _, null_dist = lax.scan(_make_null, init_null, xs=None, length=perm_number)
 
-        mr_z_perm, mr_p_perm = _get_p(mr_gamma, null_dist[:, 0:X.shape[1]])
-        egger_z_perm, egger_p_perm = _get_p(egger_gamma, null_dist[:, -X.shape[1]:])
+        mr_z_perm, mr_p_perm = _get_p(mr_gamma, null_dist[:, 0 : X.shape[1]])
+        egger_z_perm, egger_p_perm = _get_p(egger_gamma, null_dist[:, -X.shape[1] :])
     else:
         mr_z_perm = jnp.array([jnp.nan] * X.shape[1])
         mr_p_perm = jnp.array([jnp.nan] * X.shape[1])
@@ -450,6 +483,18 @@ def infer_peg(
         egger_p_perm = jnp.array([jnp.nan] * X.shape[1])
 
     result = jnp.column_stack(
-        (mr_gamma, mr_z, mr_p, mr_z_perm, mr_p_perm, egger_gamma, egger_z, egger_p, egger_z_perm, egger_p_perm))
+        (
+            mr_gamma,
+            mr_z,
+            mr_p,
+            mr_z_perm,
+            mr_p_perm,
+            egger_gamma,
+            egger_z,
+            egger_p,
+            egger_z_perm,
+            egger_p_perm,
+        )
+    )
 
     return result

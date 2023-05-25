@@ -8,6 +8,7 @@ import os
 import sys
 import warnings
 from importlib import metadata
+
 import numpy as np
 import pandas as pd
 
@@ -16,7 +17,7 @@ with warnings.catch_warnings():
 
 from jax import config
 
-from . import peg, closest, signal, log
+from . import closest, log, peg, signal
 
 warnings.filterwarnings("ignore")
 with warnings.catch_warnings():
@@ -80,31 +81,46 @@ def run_peg(args):
             args.no_ld,
             args.ref_geno,
             args.prune,
-            args.temp
+            args.temp,
         )
 
-        infer_result = peg.infer_peg(clean_data.beta,
-                                     clean_data.se,
-                                     clean_data.eqtl,
-                                     clean_data.perturb,
-                                     clean_data.inv_ld,
-                                     args.no_permute,
-                                     args.perm_number,
-                                     args.seed)
+        infer_result = peg.infer_peg(
+            clean_data.beta,
+            clean_data.se,
+            clean_data.eqtl,
+            clean_data.perturb,
+            clean_data.inv_ld,
+            args.no_permute,
+            args.perm_number,
+            args.seed,
+        )
 
-        df_infer = pd.DataFrame(infer_result,
-                                columns=["mr_gamma", "mr_z", "mr_p", "mr_z_perm", "mr_p_perm", "egger_gamma", "egger_z",
-                                         "egger_p", "egger_z_perm", "egger_p_perm"])
+        df_infer = pd.DataFrame(
+            infer_result,
+            columns=[
+                "mr_gamma",
+                "mr_z",
+                "mr_p",
+                "mr_z_perm",
+                "mr_p_perm",
+                "egger_gamma",
+                "egger_z",
+                "egger_p",
+                "egger_z_perm",
+                "egger_p_perm",
+            ],
+        )
 
-        df_result = pd.DataFrame({"trait": args.trait,
-                                  "gene_name": clean_data.gene_names,
-                                  "n_perturb": clean_data.beta.shape[0],
-                                  "n_perturb_sig": np.sum(np.abs(clean_data.perturb) > 1.96, axis=0)
-                                  })
+        df_result = pd.DataFrame(
+            {
+                "trait": args.trait,
+                "gene_name": clean_data.gene_names,
+                "n_perturb": clean_data.beta.shape[0],
+                "n_perturb_sig": np.sum(np.abs(clean_data.perturb) > 1.96, axis=0),
+            }
+        )
         df_final = pd.concat([df_result, df_infer], axis=1)
-        log.logger.info(
-            "Finished running. Saving results."
-        )
+        log.logger.info("Finished running. Saving results.")
         suffix = ".gz" if args.compress else ""
         df_final.to_csv(f"{args.output}.tsv{suffix}", sep="\t", index=False)
 
@@ -139,8 +155,12 @@ def run_closest(args):
     try:
         closest._parameter_check(args)
 
-        sig_gwas = closest._get_max_gwas(args.gwas, args.gwas_cols, args.window, args.threshold)
-        pot_genes = closest._process_potential(sig_gwas, args.ref, args.ref_cols, args.keep)
+        sig_gwas = closest._get_max_gwas(
+            args.gwas, args.gwas_cols, args.window, args.threshold
+        )
+        pot_genes = closest._process_potential(
+            sig_gwas, args.ref, args.ref_cols, args.keep
+        )
         closest_genes = closest._find_closest(sig_gwas, pot_genes)
         closest_genes["trait"] = args.trait
         suffix = ".gz" if args.compress else ""
@@ -177,9 +197,13 @@ def run_signal(args):
     try:
         signal._parameter_check(args)
 
-        df_gwas = signal._process_gwas(args.gwas, args.gwas_cols, args.chr, args.threshold)
+        df_gwas = signal._process_gwas(
+            args.gwas, args.gwas_cols, args.chr, args.threshold
+        )
 
-        df_ref = signal._process_ref(args.ref, args.ref_cols, args.chr, args.keep, args.window)
+        df_ref = signal._process_ref(
+            args.ref, args.ref_cols, args.chr, args.keep, args.window
+        )
 
         anno_full, anno_filter = signal._annot_tree(df_gwas, df_ref, args.split)
 
@@ -193,7 +217,9 @@ def run_signal(args):
 
         if args.snps_anno:
             anno_full.to_csv(f"{args.output}.full.anno.tsv.gz", sep="\t", index=False)
-            anno_filter.to_csv(f"{args.output}.filter.anno.tsv.gz", sep="\t", index=False)
+            anno_filter.to_csv(
+                f"{args.output}.filter.anno.tsv.gz", sep="\t", index=False
+            )
 
     except Exception as err:
         import traceback
@@ -219,18 +245,14 @@ def build_peg_parser(subp):
     # add imputation parser
     peg = subp.add_parser(
         "peg",
-        description=(
-            "Run Mr PEG framework",
-        ),
+        description=("Run Mr PEG framework",),
     )
 
     peg.add_argument(
         "--gwas",
         type=str,
         required=True,
-        help=(
-            "GWAS data ",
-        ),
+        help=("GWAS data ",),
     )
 
     # main arguments
@@ -261,9 +283,7 @@ def build_peg_parser(subp):
         "--ref_geno",
         default=None,
         type=str,
-        help=(
-            "'*' to split",
-        ),
+        help=("'*' to split",),
     )
 
     peg.add_argument(
@@ -299,9 +319,7 @@ def build_peg_parser(subp):
         "--no_ld",
         default=False,
         action="store_true",
-        help=(
-            "Indicator to perform LD version MR.",
-        ),
+        help=("Indicator to perform LD version MR.",),
     )
 
     peg.add_argument(
@@ -382,7 +400,8 @@ def build_peg_parser(subp):
     )
 
     peg.add_argument(
-        "-c", "--compress",
+        "-c",
+        "--compress",
         default=False,
         action="store_true",
         help=(
@@ -414,7 +433,8 @@ def build_peg_parser(subp):
     )
 
     peg.add_argument(
-        "-o", "--output",
+        "-o",
+        "--output",
         default="mrpeg_results",
         help=("Prefix for output files. Default is 'mrpeg_results'.",),
     )
@@ -426,18 +446,14 @@ def build_closest_parser(subp):
     # add imputation parser
     closest = subp.add_parser(
         "closest",
-        description=(
-            "Get closest gene",
-        ),
+        description=("Get closest gene",),
     )
 
     closest.add_argument(
         "--gwas",
         type=str,
         required=True,
-        help=(
-            "Phenotype data. It has to be a tsv file that contains at least two",
-        ),
+        help=("Phenotype data. It has to be a tsv file that contains at least two",),
     )
 
     # main arguments
@@ -473,9 +489,7 @@ def build_closest_parser(subp):
         "--keep",
         default=None,
         type=str,
-        help=(
-            "keep file."
-        ),
+        help=("keep file."),
     )
 
     closest.add_argument(
@@ -525,7 +539,8 @@ def build_closest_parser(subp):
     )
 
     closest.add_argument(
-        "-c", "--compress",
+        "-c",
+        "--compress",
         default=False,
         action="store_true",
         help=(
@@ -536,7 +551,8 @@ def build_closest_parser(subp):
     )
 
     closest.add_argument(
-        "-o", "--output",
+        "-o",
+        "--output",
         default="mrpeg_results",
         help=("Prefix for output files. Default is 'mrpeg_results'.",),
     )
@@ -548,18 +564,14 @@ def build_signal_parser(subp):
     # add imputation parser
     signal = subp.add_parser(
         "signal",
-        description=(
-            "Get closest gene",
-        ),
+        description=("Get closest gene",),
     )
 
     signal.add_argument(
         "--gwas",
         type=str,
         required=True,
-        help=(
-            "Phenotype data. It has to be a tsv file that contains at least two",
-        ),
+        help=("Phenotype data. It has to be a tsv file that contains at least two",),
     )
 
     signal.add_argument(
@@ -597,18 +609,14 @@ def build_signal_parser(subp):
         type=int,
         default=None,
         choice=range(1, 23),
-        help=(
-            "keep file."
-        ),
+        help=("keep file."),
     )
 
     signal.add_argument(
         "--keep",
         type=str,
         default=None,
-        help=(
-            "keep file."
-        ),
+        help=("keep file."),
     )
 
     signal.add_argument(
@@ -679,7 +687,8 @@ def build_signal_parser(subp):
     )
 
     signal.add_argument(
-        "-c", "--compress",
+        "-c",
+        "--compress",
         default=False,
         action="store_true",
         help=(
@@ -690,7 +699,8 @@ def build_signal_parser(subp):
     )
 
     signal.add_argument(
-        "-o", "--output",
+        "-o",
+        "--output",
         default="mrpeg_results",
         help=("Prefix for output files. Default is 'mrpeg_results'.",),
     )

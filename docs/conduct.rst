@@ -1,7 +1,7 @@
 .. _conduct:
 
 ===========================================
-MancusoLab Open Source Community Guidelines
+GusevLab Open Source Community Guidelines
 ===========================================
 
 At MancusoLab, we recognize and celebrate the creativity and collaboration of open

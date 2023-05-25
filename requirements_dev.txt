@@ -1,4 +1,5 @@
 equinox
+intervaltree
 jax
 jaxlib>=0.4.7
 pandas>=1.5.0
@@ -11,4 +12,3 @@ scipy
 setuptools
 sphinx>=5
 sphinx_immaterial
-intervaltree

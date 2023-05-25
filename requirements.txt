@@ -1,7 +1,7 @@
 equinox
+intervaltree
 jax
 jaxlib>=0.4.7
 pandas>=1.5.0
 pandas-plink==2.2.9
 scipy
-intervaltree
