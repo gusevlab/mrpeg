@@ -120,7 +120,7 @@ def run_peg(args):
             }
         )
         df_final = pd.concat([df_result, df_infer], axis=1)
-        log.logger.info("Finished running. Saving results.")
+        log.logger.info("Saving results.")
         suffix = ".gz" if args.compress else ""
         df_final.to_csv(f"{args.output}.tsv{suffix}", sep="\t", index=False)
 
@@ -138,7 +138,7 @@ def run_peg(args):
 
     finally:
         log.logger.info(
-            "Finished Mr PEG Mendelian Randomization running. Thanks for using our software."
+            "Finished Mr PEG running. Thanks for using our software."
             + " For bug reporting, suggestions, and comments, please go to https://github.com/gusevlab/mrpeg.",
         )
     return 0
@@ -207,7 +207,7 @@ def run_signal(args):
 
         anno_full, anno_filter = signal._annot_tree(df_gwas, df_ref, args.split)
 
-        signal_summary = signal._summarize(anno_filter)
+        signal_summary = signal._summarize(anno_filter, df_ref)
 
         anno_full["trait"] = args.trait
         anno_filter["trait"] = args.trait
@@ -325,7 +325,7 @@ def build_peg_parser(subp):
     peg.add_argument(
         "--prune",
         nargs=3,
-        default=[100, 10, 0.1],
+        default=[1000, 5, 0.05],
         type=float,
         help=(
             "Single file that contains subject ID across all ancestries that are used for fine-mapping."
@@ -478,7 +478,7 @@ def build_closest_parser(subp):
     closest.add_argument(
         "--ref_cols",
         nargs=4,
-        default=["CHR", "TSS", "TES", "NAME"],
+        default=["CHR", "P0", "P1", "ANNO"],
         type=str,
         help=(
             "Single file that contains subject ID across all ancestries that are used for fine-mapping."
@@ -494,7 +494,7 @@ def build_closest_parser(subp):
 
     closest.add_argument(
         "--window",
-        default=1e4,
+        default=1000,
         type=int,
         help=(
             "Integer number of shared effects pre-specified.",
@@ -606,9 +606,9 @@ def build_signal_parser(subp):
     # main arguments
     signal.add_argument(
         "--chr",
+        nargs="+",
         type=int,
         default=None,
-        choice=range(1, 23),
         help=("keep file."),
     )
 
@@ -630,7 +630,7 @@ def build_signal_parser(subp):
     )
 
     signal.add_argument(
-        "--sep",
+        "--split",
         default=",",
         type=str,
         help=(

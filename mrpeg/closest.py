@@ -5,6 +5,8 @@ from typing import List
 import numpy as np
 from scipy.stats import norm
 
+from . import log
+
 with warnings.catch_warnings():
     warnings.simplefilter("ignore")
 
@@ -44,6 +46,8 @@ def _parameter_check(
 def _get_max_gwas(gwas, gwas_cols, window, threshold) -> pd.DataFrame:
     df_gwas = pd.read_csv(gwas, sep="\t").dropna()
 
+    log.logger.info(f"Reading GWAS with {df_gwas.shape[0]} SNPs.")
+
     if not all(col in df_gwas.columns for col in gwas_cols):
         raise ValueError(
             "Specified GWAS columns are not in the GWAS data. Revisit the GWAS Data."
@@ -59,7 +63,6 @@ def _get_max_gwas(gwas, gwas_cols, window, threshold) -> pd.DataFrame:
                 f"{gwas_cols[3]}": "Z",
             }
         )
-        .sort_values(by=["CHR", "BP"])
         .reset_index(drop=True)
     )
     df_gwas[["CHR", "BP"]] = df_gwas[["CHR", "BP"]].astype(int)
@@ -70,14 +73,20 @@ def _get_max_gwas(gwas, gwas_cols, window, threshold) -> pd.DataFrame:
 
     if df_gwas.shape[0] == 0:
         raise ValueError("GWAS data doesn't contain any significant hits.")
+    else:
+        log.logger.info(f"Identify {df_gwas.shape[0]} significant SNPs.")
 
     half_window = int(window * 1000 / 2)
     df_gwas["P0"] = np.maximum(df_gwas.BP - half_window, 0)
     df_gwas["P1"] = df_gwas.BP + half_window
 
     res = []
-    for n_chr in df_gwas.CHR.unique():
-        df_snps = df_gwas[df_gwas.CHR == n_chr].reset_index(names="index")
+    for n_chr in np.sort(df_gwas.CHR.unique()):
+        df_snps = (
+            df_gwas[df_gwas.CHR == n_chr]
+            .sort_values(by=["P0"])
+            .reset_index(names="index")
+        )
         # Initialize merged intervals list with the first interval
         merged = [df_snps[["P0", "P1"]].iloc[0]]
         idx: List[int] = []
@@ -109,9 +118,22 @@ def _get_max_gwas(gwas, gwas_cols, window, threshold) -> pd.DataFrame:
         res.append(df_snps)
 
     res = pd.concat(res).drop(columns="index")
+
     res = res.loc[
-        res.groupby("START")["Z"].transform(lambda x: abs(x) == abs(x).max())
+        res.groupby(["CHR", "START", "END"])["Z"].transform(
+            lambda x: abs(x) == abs(x).max()
+        )
     ].reset_index(drop=True)
+
+    res = (
+        res.groupby(["CHR", "START", "END"])
+        .apply(lambda x: x[~x["Z"].abs().duplicated()])
+        .reset_index(drop=True)
+        .drop(columns=["P0", "P1"])
+    )
+
+    log.logger.info(f"Identify {res.shape[0]} GWAS significant regions.")
+
     return res
 
 
@@ -142,11 +164,13 @@ def _process_potential(merge, ref, ref_cols, keep) -> pd.DataFrame:
     df_ref = df_ref[df_ref.CHR.isin(merge.CHR)]
 
     if df_ref.shape[0] == 0:
-        raise ValueError("GWAS data doesn't contain any significant hits.")
+        raise ValueError(
+            "Reference data doesn't contain chromosomes that have GWAS significant hits."
+        )
 
     if keep is not None:
         df_keep = pd.read_csv(keep, sep="\t", header=None)
-        df_ref = df_ref[df_ref.NAME.isin(df_keep[0])]
+        df_ref = df_ref[df_ref.GENE.isin(df_keep[0])]
 
         if df_ref.shape[0] == 0:
             raise ValueError(
@@ -154,6 +178,8 @@ def _process_potential(merge, ref, ref_cols, keep) -> pd.DataFrame:
             )
 
     df_ref.reset_index(drop=True, inplace=True)
+
+    log.logger.info(f"Find closest genes from {df_ref.shape[0]} potential genes.")
 
     return df_ref
 
@@ -176,14 +202,14 @@ def _find_closest(sig_gwas, pot_genes) -> pd.DataFrame:
 
         if inside_genes.shape[0] != 0:
             rep = inside_genes.shape[0]
-            insert_genes = inside_genes.NAME.values
+            insert_genes = inside_genes.GENE.values
         else:
             tss_dist = np.abs(tmp_pot.TSS.values - tmp_snp.BP.values)
             tes_dist = np.abs(tmp_pot.TES.values - tmp_snp.BP.values)
             min_dist = np.minimum(tss_dist, tes_dist)
             min_index = np.where(min_dist == min_dist.min())[0]
             rep = len(min_index)
-            insert_genes = tmp_pot.NAME[min_index].values
+            insert_genes = tmp_pot.GENE[min_index].values
 
         rep_snp = tmp_snp.values.repeat(rep, axis=0)
         rep_snp = pd.DataFrame(rep_snp, columns=tmp_snp.columns)
@@ -192,4 +218,7 @@ def _find_closest(sig_gwas, pot_genes) -> pd.DataFrame:
 
     closest = pd.concat(closest)
 
+    closest = closest.merge(pot_genes, how="left", on=["CHR", "GENE"]).rename(
+        columns={"START": "REGION_START", "END": "REGION_END"}
+    )
     return closest

@@ -203,7 +203,7 @@ def _process_raw(
         )
     else:
         log.logger.info(
-            f"eQTL and perturb data shared {len(df_wk.GENE.unique())} Genes on {len(chrs)} chromosomes."
+            f"eQTL and perturb data shared {num_shared} genes on {len(chrs)} chromosomes."
         )
 
     ref_geno = ref_geno.split("!")
@@ -215,8 +215,9 @@ def _process_raw(
     keep_snps = []
     inv_ld = []
 
+    log.logger.info("Matching SNPs in the reference genotypes.")
+
     for idx in range(len(chrs)):
-        log.logger.info(f"Processing data on chromosome {chrs[idx]}.")
         bim, fam, bed = read_plink(f"{ld_paths[idx]}", verbose=False)
         bim.columns = ["CHR", "SNP", "CM", "BP", "A0_ref", "A1_ref", "i"]
         and_logic = (df_wk.CHR.values == chrs[idx]) * 1 + df_wk.SNP.isin(
@@ -224,7 +225,8 @@ def _process_raw(
         ).values * 1
         df_snp = df_wk[and_logic == 2]
 
-        df_snp = df_snp.merge(df_gwas, how="inner", on=["CHR", "SNP"])
+        tmp_gwas = df_gwas[df_gwas.CHR == chrs[idx]]
+        df_snp = df_snp.merge(tmp_gwas, how="inner", on=["CHR", "SNP"])
         if df_snp.shape[0] == 0:
             raise ValueError(
                 f"No overlap SNPs between GWAS and eQTL data on chromosome {chrs[idx]}."
@@ -314,14 +316,23 @@ def _process_raw(
                 tmp_snp = pd.read_csv(out_f, header=None)[0].values.tolist()
                 df_snp = df_snp[df_snp.SNP.isin(tmp_snp)]
             inv_ld.append(jnp.eye(df_snp.shape[0]))
+
         keep_snps.append(df_snp[["CHR", "SNP", "BETA", "SE", "Z_eqtl", "GENE"]])
     inv_ld = block_diag(*inv_ld)
 
     df_wk = pd.concat(keep_snps).merge(df_perturb, how="inner", on="GENE")
+    num_diff = num_shared - df_wk.shape[0]
+
+    if not no_ld:
+        log.logger.info(
+            f"{num_diff} genes are removed because no eQTLs in the reference data."
+        )
+    else:
+        log.logger.info(f"{num_diff} genes are pruned because of LD.")
 
     log.logger.info(
-        f"Successfully prepared {df_wk.shape[0]} perturbed genes on {len(df_wk.CHR.unique())}."
-        + f" Start running MR Peg on {len(ds_genes)} downstream genes."
+        f"Successfully prepared {df_wk.shape[0]} perturbed genes on {len(df_wk.CHR.unique())} chromosomes."
+        + f" Start running Mr PEG on {len(ds_genes)} downstream genes."
     )
 
     result = CleanData(
