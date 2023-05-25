@@ -133,7 +133,7 @@ def _prepare_perturb(perturb: str) -> Tuple[pd.DataFrame, List]:
     ds_genes = df_perturb.columns[1 : df_perturb.shape[1]].tolist()
 
     log.logger.info(
-        f"Perturb matrix contains {df_perturb.shape[0]} perturbation genes and {df_perturb.shape[1]} downstream genes."
+        f"Perturb matrix contains {df_perturb.shape[0]} perturbation genes and {len(ds_genes)} downstream genes."
     )
 
     return df_perturb, ds_genes
@@ -469,12 +469,14 @@ def infer_peg(
     sigma_g = inv_ld @ (inv(inv_ld) * v_sq) @ inv_ld
 
     inv_sigma_g = inv(sigma_g)
+
     mr_gamma, mr_z, egger_gamma, egger_z = _mrld(beta, X, inv_ld, inv_sigma_g)
 
-    mr_p = t.sf(jnp.abs(mr_z), beta.shape[0] - 1)
-    egger_p = t.sf(jnp.abs(egger_z), beta.shape[0] - 2)
+    mr_p = 2 * t.sf(jnp.abs(mr_z), beta.shape[0] - 1)
+    egger_p = 2 * t.sf(jnp.abs(egger_z), beta.shape[0] - 2)
 
     if not no_permute:
+        log.logger.warning(f"Starting permutation test with {perm_number} times.")
         init_null = null_result(
             gwas_beta=beta,
             inv_ld=inv_ld,
