@@ -41,9 +41,11 @@ def _parameter_check(
         raise ValueError(
             "Invalid p value threshold input. Choose a number between 0 and 1."
         )
-
-    if (np.array(args.chr) < 1).any() or (np.array(args.chr) > 22).any():
-        raise ValueError("Invalid chromosome input. Choose a number between 1 and 22.")
+    if args.chr is not None:
+        if (np.array(args.chr) < 1).any() or (np.array(args.chr) > 22).any():
+            raise ValueError(
+                "Invalid chromosome input. Choose a number between 1 and 22."
+            )
 
     return None
 
