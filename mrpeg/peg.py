@@ -476,7 +476,7 @@ def infer_peg(
     egger_p = 2 * t.sf(jnp.abs(egger_z), beta.shape[0] - 2)
 
     if not no_permute:
-        log.logger.warning(f"Starting permutation test with {perm_number} times.")
+        log.logger.info(f"Starting permutation test with {perm_number} times.")
         init_null = null_result(
             gwas_beta=beta,
             inv_ld=inv_ld,

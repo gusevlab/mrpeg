@@ -325,7 +325,7 @@ def build_peg_parser(subp):
     peg.add_argument(
         "--prune",
         nargs=3,
-        default=[1000, 5, 0.05],
+        default=[1000, 50, 0.01],
         type=float,
         help=(
             "Single file that contains subject ID across all ancestries that are used for fine-mapping."
