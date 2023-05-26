@@ -122,7 +122,7 @@ def run_peg(args):
         df_final = pd.concat([df_result, df_infer], axis=1)
         log.logger.info("Saving results.")
         suffix = ".gz" if args.compress else ""
-        df_final.to_csv(f"{args.output}.tsv{suffix}", sep="\t", index=False)
+        df_final.to_csv(f"{args.output}.mrpeg.tsv{suffix}", sep="\t", index=False)
 
     except Exception as err:
         import traceback
@@ -164,7 +164,9 @@ def run_closest(args):
         closest_genes = closest._find_closest(sig_gwas, pot_genes)
         closest_genes["trait"] = args.trait
         suffix = ".gz" if args.compress else ""
-        closest_genes.to_csv(f"{args.output}.tsv{suffix}", sep="\t", index=False)
+        closest_genes.to_csv(
+            f"{args.output}.closest.tsv{suffix}", sep="\t", index=False
+        )
 
     except Exception as err:
         import traceback
@@ -213,7 +215,9 @@ def run_signal(args):
         anno_filter["trait"] = args.trait
         signal_summary["trait"] = args.trait
         suffix = ".gz" if args.compress else ""
-        signal_summary.to_csv(f"{args.output}.tsv{suffix}", sep="\t", index=False)
+        signal_summary.to_csv(
+            f"{args.output}.signal.tsv{suffix}", sep="\t", index=False
+        )
 
         if args.snps_anno:
             anno_full.to_csv(f"{args.output}.full.anno.tsv.gz", sep="\t", index=False)
