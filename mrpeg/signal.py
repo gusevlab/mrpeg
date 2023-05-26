@@ -182,10 +182,13 @@ def _annot_tree(df_gwas, df_ref, sep):
     # create interval tree to manage annotations
     log.logger.info("Constructing interval tree for annotations.")
 
-    tree = IntervalTree()
     res_full = []
     res_filter = []
     for n_chr in anno_chrs:
+        tree = IntervalTree()
+        log.logger.info(
+            f"Constructing interval tree for annotations on chromosome {n_chr}."
+        )
         tmp_ref = df_ref[df_ref.CHR == n_chr]
         tmp_gwas = df_gwas[df_gwas.CHR == n_chr]
 
