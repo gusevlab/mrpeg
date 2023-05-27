@@ -32,7 +32,7 @@ __all__ = [
 
 
 def _get_command_string(args):
-    base = f"sushie {args[0]}{os.linesep}"
+    base = f"mrpeg {args[0]}{os.linesep}"
     rest = args[1:]
     rest_strs = []
     needs_tab = True
@@ -56,7 +56,7 @@ def _get_command_string(args):
 
 
 def run_peg(args):
-    """The umbrella function to run SuShiE.
+    """The umbrella function to run Mr PEG.
 
     Args:
         args: The command line parameter input.
@@ -145,7 +145,7 @@ def run_peg(args):
 
 
 def run_closest(args):
-    """The umbrella function to run SuShiE.
+    """The umbrella function to find closest GWAS genes.
 
     Args:
         args: The command line parameter input.
@@ -189,7 +189,7 @@ def run_closest(args):
 
 
 def run_signal(args):
-    """The umbrella function to run SuShiE.
+    """The umbrella function to calcucate GWAS signals.
 
     Args:
         args: The command line parameter input.
@@ -269,7 +269,6 @@ def build_peg_parser(subp):
             " in the same folder with the same prefix.",
             " Use 'space' to separate ancestries if more than two.",
             " Keep the same ancestry order as phenotype's.",
-            " SuShiE currently does not take plink 2 format.",
         ),
     )
 

@@ -179,9 +179,6 @@ def _annot_tree(df_gwas, df_ref, sep):
 
     anno_chrs = df_gwas.CHR.unique()
 
-    # create interval tree to manage annotations
-    log.logger.info("Constructing interval tree for annotations.")
-
     res_full = []
     res_filter = []
     for n_chr in anno_chrs:
