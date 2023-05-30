@@ -1,3 +1,4 @@
+import copy
 import os
 import warnings
 
@@ -202,11 +203,16 @@ def _annot_tree(df_gwas, df_ref, sep):
             l_annots = sep.join(entry.data for entry in tree[bp])
 
             tmp_split = l_annots.split(sep)
+
+            # tmp_split = list(set(tmp_split))
+            tmp_split = [x for i, x in enumerate(tmp_split) if x not in tmp_split[:i]]
+
             for idx in range(len(tmp_split)):
-                row["ANNO"] = tmp_split[idx]
-                res_full.append(row)
+                tmp_row = copy.deepcopy(row)
+                tmp_row["ANNO"] = tmp_split[idx]
+                res_full.append(tmp_row)
                 if len(tmp_split[idx]) != 0:
-                    res_filter.append(row)
+                    res_filter.append(tmp_row)
 
     res_full = pd.concat(res_full)
     res_filter = pd.concat(res_filter)
@@ -215,6 +221,7 @@ def _annot_tree(df_gwas, df_ref, sep):
 
 
 def _summarize(anno_snps, df_ref):
+    anno_snps = anno_snps[~anno_snps.duplicated(subset=["ANNO", "SNP"], keep="first")]
     result = (
         anno_snps.groupby("ANNO")["Z"]
         .apply(
@@ -234,8 +241,9 @@ def _summarize(anno_snps, df_ref):
         .unstack()
         .reset_index()
     )
+
     result = df_ref[df_ref.ANNO.isin(anno_snps.ANNO)][
-        ["ANNO", "P0", "P1", "P0_FLANK", "P1_FLANK"]
+        ["ANNO", "CHR", "P0", "P1", "P0_FLANK", "P1_FLANK"]
     ].merge(result, how="left", on="ANNO")
 
     return result
