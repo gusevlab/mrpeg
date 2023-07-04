@@ -390,7 +390,7 @@ def _make_null(result: null_result, empty: Any):
 
     rng_key, gamma_key = random.split(rng_key, 2)
 
-    new_perturb = random.permutation(gamma_key, perturb)
+    new_perturb = random.permutation(gamma_key, perturb, 0, True)
     X_perturb = jnp.einsum("i,ij->ij", eqtl, new_perturb)
     mr_gamma, _, egger_gamma, _ = _mrld(gwas_beta, X_perturb, inv_ld, inv_sigma_g)
     res = jnp.append(mr_gamma, egger_gamma)
