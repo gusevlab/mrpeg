@@ -373,7 +373,7 @@ def _mrld(y, X, inv_ld, inv_sigma_g):
     ones = jnp.ones(y.shape[0])[:, jnp.newaxis]
 
     xTx = jnp.einsum("ij,jk,ki->i", cond_X.T, inv_sigma_g, cond_X)
-    xTy = jnp.einsum("ij,jk,ki->i", cond_X.T, inv_sigma_g, cond_y)
+    xTy = jnp.einsum("ij,jk,k->i", cond_X.T, inv_sigma_g, cond_y)
     oTo = ones.T @ inv_sigma_g @ ones
     oTx = ones.T @ inv_sigma_g @ cond_X
     oTy = ones.T @ inv_sigma_g @ cond_y
