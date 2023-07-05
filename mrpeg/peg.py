@@ -45,6 +45,7 @@ class CleanData(NamedTuple):
         se: The GWAS standard error.
         eqtl: The eQTL z scores.
         perturb: The perturbation effect z scores.
+        ld: The LD matrix
         inv_ld: The inverse of the LD matrix
         gene_names: The downstream gene names.
 
@@ -54,6 +55,7 @@ class CleanData(NamedTuple):
     se: Array
     eqtl: Array
     perturb: Array
+    ld: ArrayLike
     inv_ld: ArrayLike
     gene_names: List
 
@@ -90,17 +92,21 @@ def _prepare_gwas(gwas: str, gwas_cols: List) -> pd.DataFrame:
 
     log.logger.info(f"GWAS contains {df_gwas.shape[0]} SNPs.")
 
-    df_gwas = df_gwas[gwas_cols].rename(
-        columns={
-            gwas_cols[0]: "CHR",
-            gwas_cols[1]: "SNP",
-            gwas_cols[2]: "A1_gwas",
-            gwas_cols[3]: "A0_gwas",
-            gwas_cols[4]: "BETA",
-            gwas_cols[5]: "SE",
-        }
+    df_gwas = (
+        df_gwas[gwas_cols]
+        .rename(
+            columns={
+                gwas_cols[0]: "CHR",
+                gwas_cols[1]: "SNP",
+                gwas_cols[2]: "A1_gwas",
+                gwas_cols[3]: "A0_gwas",
+                gwas_cols[4]: "BETA",
+                gwas_cols[5]: "SE",
+            }
+        )
+        .replace([jnp.inf, -jnp.inf], jnp.nan, inplace=False)
+        .dropna(inplace=False)
     )
-
     return df_gwas
 
 
@@ -112,22 +118,31 @@ def _prepare_eqtl(eqtl: str, eqtl_cols: List) -> pd.DataFrame:
 
     log.logger.info(f"eQTL contains {df_eqtl.shape[0]} SNPs.")
 
-    df_eqtl = df_eqtl[eqtl_cols].rename(
-        columns={
-            eqtl_cols[0]: "CHR",
-            eqtl_cols[1]: "SNP",
-            eqtl_cols[2]: "A1_eqtl",
-            eqtl_cols[3]: "A0_eqtl",
-            eqtl_cols[4]: "Z_eqtl",
-            eqtl_cols[5]: "GENE",
-        }
+    df_eqtl = (
+        df_eqtl[eqtl_cols]
+        .rename(
+            columns={
+                eqtl_cols[0]: "CHR",
+                eqtl_cols[1]: "SNP",
+                eqtl_cols[2]: "A1_eqtl",
+                eqtl_cols[3]: "A0_eqtl",
+                eqtl_cols[4]: "Z_eqtl",
+                eqtl_cols[5]: "GENE",
+            }
+        )
+        .replace([jnp.inf, -jnp.inf], jnp.nan, inplace=False)
+        .dropna(inplace=False)
     )
 
     return df_eqtl
 
 
 def _prepare_perturb(perturb: str) -> Tuple[pd.DataFrame, List]:
-    df_perturb = pd.read_csv(perturb, sep="\t")
+    df_perturb = (
+        pd.read_csv(perturb, sep="\t")
+        .replace([jnp.inf, -jnp.inf], jnp.nan, inplace=False)
+        .dropna(inplace=False)
+    )
     df_perturb = df_perturb.rename(columns={f"{df_perturb.columns[0]}": "GENE"})
     df_perturb = df_perturb.replace(jnp.nan, 0)
     ds_genes = df_perturb.columns[1 : df_perturb.shape[1]].tolist()
@@ -214,6 +229,7 @@ def _process_raw(
 
     keep_snps = []
     inv_ld = []
+    ld = []
 
     log.logger.info("Matching SNPs in the reference genotypes.")
 
@@ -286,8 +302,9 @@ def _process_raw(
             X[:, flip_idx] = 2 - X[:, flip_idx]
             X -= jnp.mean(X, axis=0)
             X /= jnp.std(X, axis=0)
-            tmp_inv_ld = inv(X.T @ X / X.shape[0] + 1e-3 * jnp.eye(X.shape[1]))
-            inv_ld.append(tmp_inv_ld)
+            tmp_ld = X.T @ X / X.shape[0]
+            inv_ld.append(inv(tmp_ld + 1e-3 * jnp.eye(X.shape[1])))
+            ld.append(tmp_ld)
         else:
             df_snp["SNP"].to_csv(
                 f"{temp}/extract.snp.id", index=False, header=False, sep="\t"
@@ -316,9 +333,11 @@ def _process_raw(
                 tmp_snp = pd.read_csv(out_f, header=None)[0].values.tolist()
                 df_snp = df_snp[df_snp.SNP.isin(tmp_snp)]
             inv_ld.append(jnp.eye(df_snp.shape[0]))
+            ld.append(jnp.eye(df_snp.shape[0]))
 
         keep_snps.append(df_snp[["CHR", "SNP", "BETA", "SE", "Z_eqtl", "GENE"]])
     inv_ld = block_diag(*inv_ld)
+    ld = block_diag(*ld)
 
     df_wk = pd.concat(keep_snps).merge(df_perturb, how="inner", on="GENE")
     num_diff = num_shared - df_wk.shape[0]
@@ -340,6 +359,7 @@ def _process_raw(
         se=jnp.array(df_wk.SE),
         eqtl=jnp.array(df_wk.Z_eqtl),
         perturb=jnp.array(df_wk[ds_genes]),
+        ld=ld,
         inv_ld=inv_ld,
         gene_names=ds_genes,
     )
@@ -350,11 +370,10 @@ def _process_raw(
 def _mrld(y, X, inv_ld, inv_sigma_g):
     cond_X = inv_ld @ X
     cond_y = inv_ld @ y
-    xTinv_sigma_g = cond_X.T @ inv_sigma_g
     ones = jnp.ones(y.shape[0])[:, jnp.newaxis]
 
-    xTx = jnp.einsum("kj,jk->k", xTinv_sigma_g, cond_X)
-    xTy = jnp.einsum("kj,j->k", xTinv_sigma_g, cond_y)
+    xTx = jnp.einsum("ij,jk,ki->i", cond_X.T, inv_sigma_g, cond_X)
+    xTy = jnp.einsum("ij,jk,ki->i", cond_X.T, inv_sigma_g, cond_y)
     oTo = ones.T @ inv_sigma_g @ ones
     oTx = ones.T @ inv_sigma_g @ cond_X
     oTy = ones.T @ inv_sigma_g @ cond_y
@@ -412,6 +431,7 @@ def infer_peg(
     se: ArrayLike,
     eqtl: ArrayLike,
     perturb: ArrayLike,
+    ld: ArrayLike,
     inv_ld: ArrayLike,
     no_permute: bool = False,
     perm_number: int = 500,
@@ -424,6 +444,7 @@ def infer_peg(
         se: ArrayLike. GWAS Standard error
         eqtl: ArrayLike. eQTL Z scores.
         perturb: ArrayLike. Perturbation effect size matrix.
+        ld: ArrayLike. The LD matrix.
         inv_ld: ArrayLike. The inverse of the LD matrix.
         no_permute: bool = False. Whether to perform permutation for effect size testing.
         perm_number: int = 500. The number of permutations.
@@ -466,8 +487,7 @@ def infer_peg(
     X = jnp.einsum("i,ij->ij", eqtl, perturb)
 
     v_sq = se[:, jnp.newaxis] @ se[jnp.newaxis, :]
-    sigma_g = inv_ld @ (inv(inv_ld) * v_sq) @ inv_ld
-
+    sigma_g = inv_ld @ (ld * v_sq) @ inv_ld
     inv_sigma_g = inv(sigma_g)
 
     mr_gamma, mr_z, egger_gamma, egger_z = _mrld(beta, X, inv_ld, inv_sigma_g)

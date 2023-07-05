@@ -89,6 +89,7 @@ def run_peg(args):
             clean_data.se,
             clean_data.eqtl,
             clean_data.perturb,
+            clean_data.ld,
             clean_data.inv_ld,
             args.no_permute,
             args.perm_number,
