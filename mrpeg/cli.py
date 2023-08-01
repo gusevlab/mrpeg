@@ -75,21 +75,16 @@ def run_peg(args):
             args.gwas,
             args.eqtl,
             args.perturb,
-            args.plink,
             args.gwas_cols,
             args.eqtl_cols,
-            args.no_ld,
             args.ref_geno,
-            args.prune,
-            args.temp,
         )
 
         infer_result = peg.infer_peg(
             clean_data.beta,
-            clean_data.se,
+            clean_data.inv_se,
             clean_data.eqtl,
             clean_data.perturb,
-            clean_data.ld,
             clean_data.inv_ld,
             args.no_permute,
             args.perm_number,
@@ -104,11 +99,6 @@ def run_peg(args):
                 "mr_p",
                 "mr_z_perm",
                 "mr_p_perm",
-                "egger_gamma",
-                "egger_z",
-                "egger_p",
-                "egger_z_perm",
-                "egger_p_perm",
             ],
         )
 
@@ -291,15 +281,6 @@ def build_peg_parser(subp):
     )
 
     peg.add_argument(
-        "--plink",
-        required=True,
-        type=str,
-        help=(
-            "Single file that contains subject ID across all ancestries that are used for fine-mapping."
-        ),
-    )
-
-    peg.add_argument(
         "--gwas_cols",
         nargs=6,
         default=["CHR", "SNP", "A1", "A0", "BETA", "SE"],
@@ -314,23 +295,6 @@ def build_peg_parser(subp):
         nargs=6,
         default=["CHR", "SNP", "A1", "A0", "Z", "GENE"],
         type=str,
-        help=(
-            "Single file that contains subject ID across all ancestries that are used for fine-mapping."
-        ),
-    )
-
-    peg.add_argument(
-        "--no_ld",
-        default=False,
-        action="store_true",
-        help=("Indicator to perform LD version MR.",),
-    )
-
-    peg.add_argument(
-        "--prune",
-        nargs=3,
-        default=[1000, 50, 0.01],
-        type=float,
         help=(
             "Single file that contains subject ID across all ancestries that are used for fine-mapping."
         ),
@@ -377,15 +341,6 @@ def build_peg_parser(subp):
     )
 
     # misc options
-    peg.add_argument(
-        "--temp",
-        default="~/temp/",
-        type=str,
-        help=(
-            "Single file that contains subject ID across all ancestries that are used for fine-mapping."
-        ),
-    )
-
     peg.add_argument(
         "--quiet",
         default=False,
