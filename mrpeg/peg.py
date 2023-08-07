@@ -99,6 +99,11 @@ def _prepare_gwas(gwas: str, gwas_cols: List) -> pd.DataFrame:
         .replace([jnp.inf, -jnp.inf], jnp.nan, inplace=False)
         .dropna(inplace=False)
     )
+
+    df_gwas[["CHR", "BP"]] = df_gwas[["CHR", "BP"]].astype(int)
+    # only focus on autosome
+    df_gwas = df_gwas[df_gwas["CHR"].between(1, 22)]
+
     return df_gwas
 
 
@@ -125,6 +130,10 @@ def _prepare_eqtl(eqtl: str, eqtl_cols: List) -> pd.DataFrame:
         .replace([jnp.inf, -jnp.inf], jnp.nan, inplace=False)
         .dropna(inplace=False)
     )
+
+    df_eqtl[["CHR"]] = df_eqtl[["CHR", "BP"]].astype(int)
+    # only focus on autosome
+    df_eqtl = df_eqtl[df_eqtl["CHR"].between(1, 22)]
 
     return df_eqtl
 

@@ -67,6 +67,9 @@ def _get_max_gwas(gwas, gwas_cols, window, threshold) -> pd.DataFrame:
     )
     df_gwas[["CHR", "BP"]] = df_gwas[["CHR", "BP"]].astype(int)
 
+    # only focus on autosome
+    df_gwas = df_gwas[df_gwas["CHR"].between(1, 22)]
+
     # add checks for Z or P
     z_threshold = norm.ppf(1 - threshold / 2)
     df_gwas = df_gwas[df_gwas["Z"].abs() > z_threshold]

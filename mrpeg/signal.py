@@ -79,6 +79,9 @@ def _process_gwas(gwas, gwas_cols, n_chr, threshold):
 
     df_gwas[["CHR", "BP"]] = df_gwas[["CHR", "BP"]].astype(int)
 
+    # only focus on autosome
+    df_gwas = df_gwas[df_gwas["CHR"].between(1, 22)]
+
     if n_chr is not None:
         df_gwas = df_gwas[df_gwas.CHR.isin(n_chr)]
         if df_gwas.shape[0] == 0:
@@ -148,6 +151,9 @@ def _process_ref(ref, ref_cols, n_chr, keep, window):
     )
 
     df_ref[["CHR", "P0", "P1"]] = df_ref[["CHR", "P0", "P1"]].astype(int)
+
+    # only focus on autosome
+    df_ref = df_ref[df_ref["CHR"].between(1, 22)]
 
     if n_chr is not None:
         df_ref = df_ref[df_ref.CHR.isin(n_chr)]
