@@ -104,10 +104,10 @@ def _prepare_gwas(gwas: str, gwas_cols: List) -> pd.DataFrame:
     # only focus on autosome
     df_gwas = df_gwas[df_gwas["CHR"].between(1, 22)]
 
-    import pdb; pdb.set_trace()
     # add a check on SE negative value
+
     # remove SE as 0
-    
+    df_gwas = df_gwas[df_gwas.SE != 0]
     return df_gwas
 
 
@@ -319,8 +319,8 @@ def _process_raw(
         f"Successfully prepared {df_wk.shape[0]} perturbed genes on {len(df_wk.CHR.unique())} chromosomes."
         + f" Start running Mr PEG on {len(ds_genes)} downstream genes."
     )
-    import pdb; pdb.set_trace()
-    result = CleanData(
+
+     result = CleanData(
         beta=jnp.array(df_wk.BETA),
         inv_se=jnp.diag(1 / df_wk.SE.values),
         eqtl=jnp.array(df_wk.Z_eqtl),
@@ -438,7 +438,7 @@ def infer_peg(
 
     inv_dvd = inv_se @ inv_ld @ inv_se
     mr_gamma, mr_z = _mrld(beta, X, inv_dvd)
-    import pdb; pdb.set_trace()
+
     mr_p = 2 * t.sf(jnp.abs(mr_z), beta.shape[0] - 1)
 
     if not no_permute:
