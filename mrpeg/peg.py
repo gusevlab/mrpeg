@@ -315,7 +315,7 @@ def _process_raw(
         f"Successfully prepared {df_wk.shape[0]} perturbed genes on {len(df_wk.CHR.unique())} chromosomes."
         + f" Start running Mr PEG on {len(ds_genes)} downstream genes."
     )
-
+    import pdb; pdb.set_trace()
     result = CleanData(
         beta=jnp.array(df_wk.BETA),
         inv_se=jnp.diag(1 / df_wk.SE.values),
