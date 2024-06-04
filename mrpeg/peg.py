@@ -434,7 +434,7 @@ def infer_peg(
 
     inv_dvd = inv_se @ inv_ld @ inv_se
     mr_gamma, mr_z = _mrld(beta, X, inv_dvd)
-
+    import pdb; pdb.set_trace()
     mr_p = 2 * t.sf(jnp.abs(mr_z), beta.shape[0] - 1)
 
     if not no_permute:
