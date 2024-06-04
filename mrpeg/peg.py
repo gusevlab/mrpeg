@@ -436,8 +436,7 @@ def infer_peg(
     mr_gamma, mr_z = _mrld(beta, X, inv_dvd)
 
     mr_p = 2 * t.sf(jnp.abs(mr_z), beta.shape[0] - 1)
-    import pdb;
-    pdb.set_trace()
+
     if not no_permute:
         log.logger.info(f"Starting permutation test with {perm_number} times.")
         init_null = null_result(
