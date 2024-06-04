@@ -320,7 +320,7 @@ def _process_raw(
         + f" Start running Mr PEG on {len(ds_genes)} downstream genes."
     )
 
-     result = CleanData(
+    result = CleanData(
         beta=jnp.array(df_wk.BETA),
         inv_se=jnp.diag(1 / df_wk.SE.values),
         eqtl=jnp.array(df_wk.Z_eqtl),
