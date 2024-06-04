@@ -104,6 +104,10 @@ def _prepare_gwas(gwas: str, gwas_cols: List) -> pd.DataFrame:
     # only focus on autosome
     df_gwas = df_gwas[df_gwas["CHR"].between(1, 22)]
 
+    import pdb; pdb.set_trace()
+    # add a check on SE negative value
+    # remove SE as 0
+    
     return df_gwas
 
 
@@ -130,7 +134,7 @@ def _prepare_eqtl(eqtl: str, eqtl_cols: List) -> pd.DataFrame:
         .replace([jnp.inf, -jnp.inf], jnp.nan, inplace=False)
         .dropna(inplace=False)
     )
-    import pdb; pdb.set_trace()
+
     df_eqtl[["CHR"]] = df_eqtl[["CHR"]].astype(int)
     # only focus on autosome
     df_eqtl = df_eqtl[df_eqtl["CHR"].between(1, 22)]
