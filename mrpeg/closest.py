@@ -169,6 +169,8 @@ def _process_potential(merge, ref, ref_cols, keep) -> pd.DataFrame:
         .reset_index(drop=True)
     )
 
+    df_ref = df_ref.dropna()
+
     df_ref[["CHR", "TSS", "TES"]] = df_ref[["CHR", "TSS", "TES"]].astype(int)
 
     df_ref = df_ref[df_ref.CHR.isin(merge.CHR)]
