@@ -78,6 +78,8 @@ def _process_gwas(gwas, gwas_cols, n_chr, threshold):
         .reset_index(drop=True)
     )
 
+    df_gwas = df_gwas.dropna()
+
     if (df_gwas["SE"] <= 0).any():
         log.logger.info(f"GWAS data contains SNP with 0 or negative value of standard error. Will remove these SNPs.")
         df_gwas = df_gwas[df_gwas.SE > 0]
