@@ -427,7 +427,7 @@ def build_closest_parser(subp):
 
     closest.add_argument(
         "--gwas_cols",
-        nargs=4,
+        nargs=5,
         default=["CHR", "SNP", "BP", "BETA", "SE"],
         type=str,
         help=(
@@ -544,7 +544,7 @@ def build_signal_parser(subp):
 
     signal.add_argument(
         "--gwas_cols",
-        nargs=4,
+        nargs=5,
         default=["CHR", "SNP", "BP", "BETA", "SE"],
         type=str,
         help=(
