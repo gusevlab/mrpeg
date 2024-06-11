@@ -428,7 +428,7 @@ def build_closest_parser(subp):
     closest.add_argument(
         "--gwas_cols",
         nargs=4,
-        default=["CHR", "SNP", "BP", "Z"],
+        default=["CHR", "SNP", "BP", "BETA", "SE"],
         type=str,
         help=(
             "Single file that contains subject ID across all ancestries that are used for fine-mapping."
@@ -545,7 +545,7 @@ def build_signal_parser(subp):
     signal.add_argument(
         "--gwas_cols",
         nargs=4,
-        default=["CHR", "SNP", "BP", "Z"],
+        default=["CHR", "SNP", "BP", "BETA", "Z"],
         type=str,
         help=(
             "Single file that contains subject ID across all ancestries that are used for fine-mapping."
@@ -580,7 +580,7 @@ def build_signal_parser(subp):
 
     signal.add_argument(
         "--window",
-        default=200,
+        default=1000,
         type=int,
         help=(
             "Integer number of shared effects pre-specified.",

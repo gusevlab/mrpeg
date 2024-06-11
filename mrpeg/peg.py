@@ -105,9 +105,10 @@ def _prepare_gwas(gwas: str, gwas_cols: List) -> pd.DataFrame:
     df_gwas = df_gwas[df_gwas["CHR"].between(1, 22)]
 
     # add a check on SE negative value
+    if (df_gwas["SE"] <= 0).any():
+        log.logger.info(f"GWAS data contains SNP with 0 or negative value of standard error. Will remove these SNPs.")
+        df_gwas = df_gwas[df_gwas.SE > 0]
 
-    # remove SE as 0
-    df_gwas = df_gwas[df_gwas.SE != 0]
     return df_gwas
 
 

@@ -60,12 +60,19 @@ def _get_max_gwas(gwas, gwas_cols, window, threshold) -> pd.DataFrame:
                 f"{gwas_cols[0]}": "CHR",
                 f"{gwas_cols[1]}": "SNP",
                 f"{gwas_cols[2]}": "BP",
-                f"{gwas_cols[3]}": "Z",
+                f"{gwas_cols[3]}": "BETA",
+                f"{gwas_cols[4]}": "SE",
             }
         )
         .reset_index(drop=True)
     )
+
+    if (df_gwas["SE"] <= 0).any():
+        log.logger.info(f"GWAS data contains SNP with 0 or negative value of standard error. Will remove these SNPs.")
+        df_gwas = df_gwas[df_gwas.SE > 0]
+
     df_gwas[["CHR", "BP"]] = df_gwas[["CHR", "BP"]].astype(int)
+    df_gwas["Z"] = df_gwas.BETA / df_gwas.SE
 
     # only focus on autosome
     df_gwas = df_gwas[df_gwas["CHR"].between(1, 22)]
