@@ -211,7 +211,8 @@ def _annot_tree(df_gwas, df_ref, sep):
             end = int(row["P1_FLANK"])
             l_annots = row["ANNO"]
             tree[start:end] = l_annots
-
+        import pdb;
+        pdb.set_trace()
         # tree.merge_overlaps(data_reducer=data_reducer)
         for index, row in tmp_gwas.iterrows():
             row = pd.DataFrame(row).T
@@ -229,7 +230,7 @@ def _annot_tree(df_gwas, df_ref, sep):
                 res_full.append(tmp_row)
                 if len(tmp_split[idx]) != 0:
                     res_filter.append(tmp_row)
-
+    import pdb; pdb.set_trace()
     res_full = pd.concat(res_full)
     res_filter = pd.concat(res_filter)
 
