@@ -545,7 +545,7 @@ def build_signal_parser(subp):
     signal.add_argument(
         "--gwas_cols",
         nargs=4,
-        default=["CHR", "SNP", "BP", "BETA", "Z"],
+        default=["CHR", "SNP", "BP", "BETA", "SE"],
         type=str,
         help=(
             "Single file that contains subject ID across all ancestries that are used for fine-mapping."
