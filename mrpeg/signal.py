@@ -78,10 +78,15 @@ def _process_gwas(gwas, gwas_cols, n_chr, threshold):
         .reset_index(drop=True)
     )
 
+    df_gwas["CHR"] = pd.to_numeric(df_gwas["CHR"], errors="coerce")
+    df_gwas["BP"] = pd.to_numeric(df_gwas["BP"], errors="coerce")
+    df_gwas["BETA"] = pd.to_numeric(df_gwas["BETA"], errors="coerce")
+    df_gwas["SE"] = pd.to_numeric(df_gwas["SE"], errors="coerce")
+
     df_gwas = df_gwas.dropna()
 
     if (df_gwas["SE"] <= 0).any():
-        log.logger.info(f"GWAS data contains SNP with 0 or negative value of standard error. Will remove these SNPs.")
+        log.logger.info(f"GWAS data contains SNP with 0 or negative value of SE. Will remove these SNPs.")
         df_gwas = df_gwas[df_gwas.SE > 0]
 
     df_gwas[["CHR", "BP"]] = df_gwas[["CHR", "BP"]].astype(int)
@@ -158,6 +163,12 @@ def _process_ref(ref, ref_cols, n_chr, keep, window):
         .reset_index(drop=True)
     )
 
+    # Convert CHR and BP to numeric, coercing errors; this turns invalid parsing into NaN
+    df_ref["CHR"] = pd.to_numeric(df_ref["CHR"], errors="coerce")
+    df_ref["P0"] = pd.to_numeric(df_ref["P0"], errors="coerce")
+    df_ref["P1"] = pd.to_numeric(df_ref["P1"], errors="coerce")
+
+    # Drop rows with NaN values
     df_ref = df_ref.dropna()
 
     df_ref[["CHR", "P0", "P1"]] = df_ref[["CHR", "P0", "P1"]].astype(int)

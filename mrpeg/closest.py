@@ -67,6 +67,13 @@ def _get_max_gwas(gwas, gwas_cols, window, threshold) -> pd.DataFrame:
         .reset_index(drop=True)
     )
 
+    df_gwas["CHR"] = pd.to_numeric(df_gwas["CHR"], errors="coerce")
+    df_gwas["BP"] = pd.to_numeric(df_gwas["BP"], errors="coerce")
+    df_gwas["BETA"] = pd.to_numeric(df_gwas["BETA"], errors="coerce")
+    df_gwas["SE"] = pd.to_numeric(df_gwas["SE"], errors="coerce")
+
+    df_gwas = df_gwas.dropna()
+
     if (df_gwas["SE"] <= 0).any():
         log.logger.info(f"GWAS data contains SNP with 0 or negative value of standard error. Will remove these SNPs.")
         df_gwas = df_gwas[df_gwas.SE > 0]
@@ -168,6 +175,10 @@ def _process_potential(merge, ref, ref_cols, keep) -> pd.DataFrame:
         .sort_values(by=["CHR", "TSS", "TES"])
         .reset_index(drop=True)
     )
+
+    df_ref["CHR"] = pd.to_numeric(df_ref["CHR"], errors="coerce")
+    df_ref["TSS"] = pd.to_numeric(df_ref["TSS"], errors="coerce")
+    df_ref["TES"] = pd.to_numeric(df_ref["TES"], errors="coerce")
 
     df_ref = df_ref.dropna()
 
