@@ -3,7 +3,7 @@
 
 # Development-specific
 __pycache__/
-
+.vscode
 *.metadata2.mmm
 
 *.sh
