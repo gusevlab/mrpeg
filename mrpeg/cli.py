@@ -198,11 +198,10 @@ def run_signal(args):
             args.ref, args.ref_cols, args.chr, args.keep, args.window
         )
 
-        anno_full, anno_filter = signal._annot_tree(df_gwas, df_ref, args.split)
+        anno_full, anno_filter = signal._annot_tree(df_gwas, df_ref, args.split, args.snps_anno)
 
         signal_summary = signal._summarize(anno_filter, df_ref)
 
-        anno_full["trait"] = args.trait
         anno_filter["trait"] = args.trait
         signal_summary["trait"] = args.trait
         suffix = ".gz" if args.compress else ""
@@ -211,6 +210,7 @@ def run_signal(args):
         )
 
         if args.snps_anno:
+            anno_full["trait"] = args.trait
             anno_full.to_csv(f"{args.output}.full.anno.tsv.gz", sep="\t", index=False)
             anno_filter.to_csv(
                 f"{args.output}.filter.anno.tsv.gz", sep="\t", index=False

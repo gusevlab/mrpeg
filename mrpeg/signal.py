@@ -203,12 +203,13 @@ def _process_ref(ref, ref_cols, n_chr, keep, window):
     return df_ref
 
 
-def _annot_tree(df_gwas, df_ref, sep):
+def _annot_tree(df_gwas, df_ref, sep, snps_anno):
 
     anno_chrs = df_gwas.CHR.unique()
 
     res_full = []
     res_filter = []
+
     for n_chr in anno_chrs:
         tree = IntervalTree()
         log.logger.info(
@@ -237,12 +238,21 @@ def _annot_tree(df_gwas, df_ref, sep):
             for idx in range(len(tmp_split)):
                 tmp_row = copy.deepcopy(row)
                 tmp_row["ANNO"] = tmp_split[idx]
-                res_full.append(tmp_row)
+                if snps_anno:
+                    res_full.append(tmp_row)
+
                 if len(tmp_split[idx]) != 0:
                     res_filter.append(tmp_row)
 
-    res_full = pd.concat(res_full)
-    res_filter = pd.concat(res_filter)
+    if len(res_full):
+        res_full = pd.concat(res_full)
+    else:
+        res_full = pd.DataFrame()
+
+    if len(res_filter):
+        res_filter = pd.concat(res_filter)
+    else:
+        res_filter = pd.DataFrame()
 
     return res_full, res_filter
 
