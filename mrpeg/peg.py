@@ -76,7 +76,7 @@ def _parameter_check(
     return None
 
 
-def _prepare_gwas(gwas: str, gwas_cols: List) -> pd.DataFrame:
+def _prepare_gwas(gwas: str, gwas_cols: List, keep_ambiguous: bool) -> pd.DataFrame:
     df_gwas = pd.read_csv(gwas, sep="\t").dropna()
 
     if not all(col in df_gwas.columns for col in gwas_cols):
@@ -109,6 +109,21 @@ def _prepare_gwas(gwas: str, gwas_cols: List) -> pd.DataFrame:
         log.logger.info(f"GWAS data contains SNP with 0 or negative value of standard error. Will remove these SNPs.")
         df_gwas = df_gwas[df_gwas.SE > 0]
 
+    if not keep_ambiguous:
+        import pdb; pdb.set_trace()
+        ambiguous_snps = ["AT", "TA", "CG", "GC"]
+        if_ambig = (snps_gwas.a0_1 + snps_gwas.a1_1).isin(ambiguous_snps)
+        del_num = if_ambig.sum()
+        snps_gwas = snps_gwas[~if_ambig].reset_index(drop=True)
+
+        if snps_gwas.shape[0] == 0:
+            raise ValueError(
+                "All SNPs are ambiguous in genotype data. Check the source."
+            )
+
+        if del_num != 0:
+            log.logger.debug(f"Drop {del_num} ambiguous SNPs in genotype data.")
+    
     return df_gwas
 
 
@@ -187,9 +202,10 @@ def _process_raw(
     gwas_cols: List,
     eqtl_cols: List,
     ref_geno: str,
+    keep_ambiguous: bool,
 ) -> CleanData:
     # read in GWAS data
-    df_gwas = _prepare_gwas(gwas, gwas_cols)
+    df_gwas = _prepare_gwas(gwas, gwas_cols, keep_ambiguous)
 
     # read in eQTL data
     df_eqtl = _prepare_eqtl(eqtl, eqtl_cols)
@@ -231,7 +247,7 @@ def _process_raw(
     log.logger.info("Matching SNPs in the reference genotypes.")
 
     for idx in range(len(chrs)):
-        bim, fam, bed = read_plink(f"{ld_paths[idx]}", verbose=False)
+        bim, _, bed = read_plink(f"{ld_paths[idx]}", verbose=False)
         bim.columns = ["CHR", "SNP", "CM", "BP", "A0_ref", "A1_ref", "i"]
         and_logic = (df_wk.CHR.values == chrs[idx]) * 1 + df_wk.SNP.isin(
             bim.SNP
@@ -239,15 +255,36 @@ def _process_raw(
         df_snp = df_wk[and_logic == 2]
 
         tmp_gwas = df_gwas[df_gwas.CHR == chrs[idx]]
-        df_snp = df_snp.merge(tmp_gwas, how="inner", on=["CHR", "SNP"])
+        df_snp = df_snp.merge(tmp_gwas, how="inner", on=["CHR", "SNP"]).reset_index(drop=True)
         if df_snp.shape[0] == 0:
             log.logger.warning(
                 f"No overlap SNPs between GWAS and eQTL data on chromosome {chrs[idx]}."
             )
             continue
 
+        # drop wrong SNPs first, and do not consider flipping yet
+        _, _, wrong_idx = _allele_check(
+            df_snp["A1_gwas"].values,
+            df_snp["A0_gwas"].values,
+            df_snp["A1_ref"].values,
+            df_snp["A0_ref"].values,
+        )
+        
+        import pdb; pdb.set_trace()
+        
+        if len(wrong_idx) != 0:
+            df_snp = df_snp.drop(wrong_idx, axis=0).reset_index(drop=True)
+            df_snp = df_snp.merge(
+            bim[["SNP", "A1_ref", "A0_ref", "i"]], how="inner", on="SNP"
+        )
+
+        
+
+        if len(wrong_idx) != 0:
+            df_snp = df_snp.drop(index=wrong_idx)
+            
         # flip alleles
-        _, flip_idx, wrong_idx = _allele_check(
+        _, flip_idx, _ = _allele_check(
             df_snp["A1_gwas"].values,
             df_snp["A0_gwas"].values,
             df_snp["A1_eqtl"].values,
@@ -256,22 +293,7 @@ def _process_raw(
 
         df_snp.loc[flip_idx, "Z_eqtl"] = -1 * df_snp.iloc[flip_idx, :]["Z_eqtl"].values
 
-        if len(wrong_idx) != 0:
-            df_snp = df_snp.drop(wrong_idx, axis=0)
-        df_snp = df_snp.merge(
-            bim[["SNP", "A1_ref", "A0_ref", "i"]], how="inner", on="SNP"
-        )
-
-        # just drop wrong SNPs first, and do not consider flipping yet
-        _, _, wrong_idx = _allele_check(
-            df_snp["A1_gwas"].values,
-            df_snp["A0_gwas"].values,
-            df_snp["A1_ref"].values,
-            df_snp["A0_ref"].values,
-        )
-
-        if len(wrong_idx) != 0:
-            df_snp = df_snp.drop(index=wrong_idx)
+        
 
         # we have cases that same SNPs are the top eQTL for multiple genes
         # to make sure we contain as many genes as possible,

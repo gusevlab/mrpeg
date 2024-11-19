@@ -78,6 +78,7 @@ def run_peg(args):
             args.gwas_cols,
             args.eqtl_cols,
             args.ref_geno,
+            args.keep_ambiguous,
         )
 
         infer_result = peg.infer_peg(
@@ -105,6 +106,7 @@ def run_peg(args):
         df_result = pd.DataFrame(
             {
                 "trait": args.trait,
+                "tissue": args.tissue,
                 "gene_name": clean_data.gene_names,
                 "n_perturb": clean_data.beta.shape[0],
                 "n_perturb_sig": np.sum(np.abs(clean_data.perturb) > 1.96, axis=0),
@@ -307,6 +309,15 @@ def build_peg_parser(subp):
             "Single file that contains subject ID across all ancestries that are used for fine-mapping."
         ),
     )
+    
+    peg.add_argument(
+        "--keep-ambiguous",
+        default=False,
+        action="store_true",
+        help=(
+            "Single file that contains subject ID across all ancestries that are used for fine-mapping."
+        ),
+    )
 
     peg.add_argument(
         "--perm_number",
@@ -343,6 +354,14 @@ def build_peg_parser(subp):
     peg.add_argument(
         "--trait",
         default="Trait",
+        help=(
+            "Trait, tissue, gene name of the phenotype for better indexing in post-hoc analysis. Default is 'Trait'.",
+        ),
+    )
+    
+    peg.add_argument(
+        "--tissue",
+        default="Tissue",
         help=(
             "Trait, tissue, gene name of the phenotype for better indexing in post-hoc analysis. Default is 'Trait'.",
         ),
