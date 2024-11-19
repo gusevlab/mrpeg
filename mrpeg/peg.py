@@ -110,15 +110,14 @@ def _prepare_gwas(gwas: str, gwas_cols: List, keep_ambiguous: bool) -> pd.DataFr
         df_gwas = df_gwas[df_gwas.SE > 0]
 
     if not keep_ambiguous:
-        import pdb; pdb.set_trace()
         ambiguous_snps = ["AT", "TA", "CG", "GC"]
-        if_ambig = (snps_gwas.a0_1 + snps_gwas.a1_1).isin(ambiguous_snps)
+        if_ambig = (df_gwas.A1_gwas + df_gwas.A0_gwas).isin(ambiguous_snps)
         del_num = if_ambig.sum()
-        snps_gwas = snps_gwas[~if_ambig].reset_index(drop=True)
+        df_gwas = df_gwas[~if_ambig].reset_index(drop=True)
 
-        if snps_gwas.shape[0] == 0:
+        if df_gwas.shape[0] == 0:
             raise ValueError(
-                "All SNPs are ambiguous in genotype data. Check the source."
+                "All SNPs are ambiguous in GWAS data. Check the source."
             )
 
         if del_num != 0:
@@ -153,7 +152,7 @@ def _prepare_eqtl(eqtl: str, eqtl_cols: List) -> pd.DataFrame:
 
     df_eqtl[["CHR"]] = df_eqtl[["CHR"]].astype(int)
     # only focus on autosome
-    df_eqtl = df_eqtl[df_eqtl["CHR"].between(1, 22)]
+    df_eqtl = df_eqtl[df_eqtl["CHR"].between(1, 22)].reset_index(drop=True)
 
     return df_eqtl
 
@@ -163,6 +162,7 @@ def _prepare_perturb(perturb: str) -> Tuple[pd.DataFrame, List]:
         pd.read_csv(perturb, sep="\t")
         .replace([jnp.inf, -jnp.inf], jnp.nan, inplace=False)
         .dropna(inplace=False)
+        .reset_index(drop=True)
     )
     df_perturb = df_perturb.rename(columns={f"{df_perturb.columns[0]}": "GENE"})
     df_perturb = df_perturb.replace(jnp.nan, 0)
@@ -218,6 +218,7 @@ def _process_raw(
         .sort_values(by=["CHR", "SNP"])
         .reset_index(drop=True)
     )
+    import pdb; pdb.set_trace()
     num_shared = len(df_wk.GENE.unique())
     chrs = df_wk["CHR"].unique()
 
