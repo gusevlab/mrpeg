@@ -314,8 +314,6 @@ def _process_raw(
             df_snp.loc[flip_idx, "Z_eqtl"] = -1 * df_snp.iloc[flip_idx, :]["Z_eqtl"].values
             log.logger.info(f"Flip {len(flip_idx)} SNPs between reference and eQTL data on chromosome {chrs[idx]}.")
         
-        import pdb; pdb.set_trace() 
-
         # we have cases that same SNPs are the top eQTL for multiple genes
         # to make sure we contain as many genes as possible,
         # we select top 5 eQTLs for each gene, and then remove the duplicates
@@ -325,26 +323,18 @@ def _process_raw(
             .apply(lambda x: x.assign(abs_B=x["Z_eqtl"].abs()).nlargest(5, "abs_B"))
             .reset_index(drop=True)
         )
-        import pdb; pdb.set_trace()
+
         df_snp = df_snp.sort_values(
             by="Z_eqtl", key=lambda x: abs(x), ascending=False
         ).drop_duplicates(subset="SNP")
-        import pdb; pdb.set_trace()
+
         df_snp = (
             df_snp.groupby("GENE")
             .apply(lambda x: x.loc[abs(x["Z_eqtl"]).idxmax()])
             .reset_index(drop=True)
         )
-        import pdb; pdb.set_trace()
-        X = bed.compute().T[:, df_snp.i]
-        _, flip_idx, _ = _allele_check(
-            df_snp["A1_gwas"].values,
-            df_snp["A0_gwas"].values,
-            df_snp["A1_ref"].values,
-            df_snp["A0_ref"].values,
-        )
 
-        X[:, flip_idx] = 2 - X[:, flip_idx]
+        X = bed.compute().T[:, df_snp.i]
         X -= jnp.mean(X, axis=0)
         X /= jnp.std(X, axis=0)
         tmp_ld = X.T @ X / X.shape[0]
@@ -363,7 +353,7 @@ def _process_raw(
         f"Successfully prepared {df_wk.shape[0]} perturbed genes on {len(df_wk.CHR.unique())} chromosomes."
         + f" Start running Mr PEG on {len(ds_genes)} downstream genes."
     )
-
+    import pdb; pdb.set_trace()
     result = CleanData(
         beta=jnp.array(df_wk.BETA),
         inv_se=jnp.diag(1 / df_wk.SE.values),
