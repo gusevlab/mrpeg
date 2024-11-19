@@ -469,10 +469,8 @@ def infer_peg(
     rng_key = random.PRNGKey(seed)
 
     X = jnp.einsum("i,ij->ij", eqtl, perturb)
-    import pdb; pdb.set_trace()
     inv_dvd = inv_se @ inv_ld @ inv_se
     mr_gamma, mr_z = _mrld(beta, X, inv_dvd)
-    import pdb; pdb.set_trace()
     mr_p = 2 * t.sf(jnp.abs(mr_z), beta.shape[0] - 1)
 
     if not no_permute:
