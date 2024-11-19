@@ -244,12 +244,12 @@ def _annot_tree(df_gwas, df_ref, sep, snps_anno):
                 if len(tmp_split[idx]) != 0:
                     res_filter.append(tmp_row)
 
-    if len(res_full):
+    if len(res_full) != 0:
         res_full = pd.concat(res_full)
     else:
         res_full = pd.DataFrame()
 
-    if len(res_filter):
+    if len(res_filter) != 0:
         res_filter = pd.concat(res_filter)
     else:
         res_filter = pd.DataFrame()

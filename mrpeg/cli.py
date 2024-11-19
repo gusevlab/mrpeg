@@ -152,12 +152,20 @@ def run_closest(args):
         pot_genes = closest._process_potential(
             sig_gwas, args.ref, args.ref_cols, args.keep
         )
-        closest_genes = closest._find_closest(sig_gwas, pot_genes)
-        closest_genes["trait"] = args.trait
-        suffix = ".gz" if args.compress else ""
-        closest_genes.to_csv(
-            f"{args.output}.closest.tsv{suffix}", sep="\t", index=False
-        )
+        if not args.nearby:
+            closest_genes = closest._find_closest(sig_gwas, pot_genes)
+            closest_genes["trait"] = args.trait
+            suffix = ".gz" if args.compress else ""
+            closest_genes.to_csv(
+                f"{args.output}.closest.tsv{suffix}", sep="\t", index=False
+            )
+        else:
+            nearby_genes = closest._find_nearby(sig_gwas, pot_genes, args.window)
+            nearby_genes["trait"] = args.trait
+            suffix = ".gz" if args.compress else ""
+            nearby_genes.to_csv(
+                f"{args.output}.nearby.tsv{suffix}", sep="\t", index=False
+            )
 
     except Exception as err:
         import traceback
@@ -478,6 +486,15 @@ def build_closest_parser(subp):
             "Trait, tissue, gene name of the phenotype for better indexing in post-hoc analysis. Default is 'Trait'.",
         ),
     )
+    
+    closest.add_argument(
+        "--nearby",
+        default=False,
+        type=bool,
+        help=(
+            "Trait, tissue, gene name of the phenotype for better indexing in post-hoc analysis. Default is 'Trait'.",
+        ),
+    )
 
     # misc options
     closest.add_argument(
@@ -609,7 +626,7 @@ def build_signal_parser(subp):
     )
 
     signal.add_argument(
-        "--snps_anno",
+        "--snps-anno",
         default=False,
         type=bool,
         help=(

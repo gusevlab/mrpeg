@@ -245,3 +245,26 @@ def _find_closest(sig_gwas, pot_genes) -> pd.DataFrame:
         columns={"START": "REGION_START", "END": "REGION_END"}
     )
     return closest
+
+def _find_nearby(sig_gwas, pot_genes, window) -> pd.DataFrame:
+    nearby = []
+    half_window = int(window * 1000 / 2)
+    for idx in range(sig_gwas.shape[0]):
+        tmp_snp = sig_gwas.iloc[
+            [idx],
+        ]
+        
+        P0 = np.maximum(tmp_snp.BP - half_window, 0)
+        P1 = tmp_snp.BP + half_window
+    
+        tmp_pot = pot_genes[pot_genes.CHR.values == tmp_snp.CHR.values].reset_index(
+            drop=True
+        )
+        
+        overlap_pot = tmp_pot[(tmp_pot["TSS"] <= P1) & (tmp_pot["TES"] >= P0)].copy()
+        overlap_pot["snp"] = tmp_snp.SNP.values[0]
+        nearby.append(overlap_pot)
+
+    nearby = pd.concat(nearby)
+
+    return nearby
