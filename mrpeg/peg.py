@@ -249,10 +249,7 @@ def _process_raw(
     for idx in range(len(chrs)):
         bim, _, bed = read_plink(f"{ld_paths[idx]}", verbose=False)
         bim.columns = ["CHR", "SNP", "CM", "BP", "A0_ref", "A1_ref", "i"]
-        import pdb; pdb.set_trace()
-        # and_logic = (df_wk.CHR.values == chrs[idx]) * 1 + df_wk.SNP.isin(
-        #     bim.SNP
-        # ).values * 1
+
         bim.CHR = bim.CHR.astype(int)
         df_snp = df_wk.merge(bim, how="inner", on=["CHR", "SNP"]).merge(df_gwas, how="inner", on=["CHR", "SNP"]).reset_index(drop=True)
         
@@ -312,8 +309,10 @@ def _process_raw(
             df_snp["A1_eqtl"].values,
             df_snp["A0_eqtl"].values,
         )
-
-        df_snp.loc[flip_idx, "Z_eqtl"] = -1 * df_snp.iloc[flip_idx, :]["Z_eqtl"].values
+        
+        if len(flip_idx) != 0:
+            df_snp.loc[flip_idx, "Z_eqtl"] = -1 * df_snp.iloc[flip_idx, :]["Z_eqtl"].values
+            log.logger.info(f"Flip {len(flip_idx)} SNPs between reference and eQTL data on chromosome {chrs[idx]}.")
         
         import pdb; pdb.set_trace() 
 
@@ -326,17 +325,17 @@ def _process_raw(
             .apply(lambda x: x.assign(abs_B=x["Z_eqtl"].abs()).nlargest(5, "abs_B"))
             .reset_index(drop=True)
         )
-
+        import pdb; pdb.set_trace()
         df_snp = df_snp.sort_values(
             by="Z_eqtl", key=lambda x: abs(x), ascending=False
         ).drop_duplicates(subset="SNP")
-
+        import pdb; pdb.set_trace()
         df_snp = (
             df_snp.groupby("GENE")
             .apply(lambda x: x.loc[abs(x["Z_eqtl"]).idxmax()])
             .reset_index(drop=True)
         )
-
+        import pdb; pdb.set_trace()
         X = bed.compute().T[:, df_snp.i]
         _, flip_idx, _ = _allele_check(
             df_snp["A1_gwas"].values,
