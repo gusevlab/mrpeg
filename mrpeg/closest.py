@@ -260,7 +260,7 @@ def _find_nearby(sig_gwas, pot_genes, window) -> pd.DataFrame:
         tmp_pot = pot_genes[pot_genes.CHR.values == tmp_snp.CHR.values].reset_index(
             drop=True
         )
-        
+        import pdb; pdb.set_trace()
         overlap_pot = tmp_pot[(tmp_pot["TSS"] <= P1) & (tmp_pot["TES"] >= P0)].copy()
         overlap_pot["snp"] = tmp_snp.SNP.values[0]
         nearby.append(overlap_pot)
