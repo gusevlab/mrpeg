@@ -218,7 +218,6 @@ def _process_raw(
         .sort_values(by=["CHR", "SNP"])
         .reset_index(drop=True)
     )
-    import pdb; pdb.set_trace()
     num_shared = len(df_wk.GENE.unique())
     chrs = df_wk["CHR"].unique()
 
@@ -250,6 +249,7 @@ def _process_raw(
     for idx in range(len(chrs)):
         bim, _, bed = read_plink(f"{ld_paths[idx]}", verbose=False)
         bim.columns = ["CHR", "SNP", "CM", "BP", "A0_ref", "A1_ref", "i"]
+        import pdb; pdb.set_trace()
         and_logic = (df_wk.CHR.values == chrs[idx]) * 1 + df_wk.SNP.isin(
             bim.SNP
         ).values * 1
