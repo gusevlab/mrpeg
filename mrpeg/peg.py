@@ -254,7 +254,7 @@ def _process_raw(
         df_snp = df_wk.merge(bim, how="inner", on=["CHR", "SNP"]).merge(df_gwas, how="inner", on=["CHR", "SNP"]).reset_index(drop=True)
         
         if df_snp.shape[0] == 0:
-            log.logger.warning(
+            log.logger.debug(
                 f"No overlap SNPs between GWAS, eQTL, and reference data on chromosome {chrs[idx]}."
             )
             continue
@@ -270,7 +270,7 @@ def _process_raw(
         if len(wrong_idx) != 0:
             df_snp = df_snp.drop(wrong_idx, axis=0).reset_index(drop=True)
             if df_snp.shape[0] == 0:
-                log.logger.warning(
+                log.logger.debug(
                     f"All SNPs do not match between reference and GWAS data on chromosome {chrs[idx]}."
                 )
                 continue
@@ -286,7 +286,7 @@ def _process_raw(
         if len(wrong_idx) != 0:
             df_snp = df_snp.drop(wrong_idx, axis=0).reset_index(drop=True)
             if df_snp.shape[0] == 0:
-                log.logger.warning(
+                log.logger.debug(
                     f"All SNPs do not match between reference and eQTL data on chromosome {chrs[idx]}."
                 )
                 continue
@@ -300,7 +300,7 @@ def _process_raw(
         )
         if len(flip_idx) != 0:
             df_snp.loc[flip_idx, "BETA"] = -1 * df_snp.iloc[flip_idx, :]["BETA"].values
-            log.logger.info(f"Flip {len(flip_idx)} SNPs between reference and GWAS data on chromosome {chrs[idx]}.")
+            log.logger.debug(f"Flip {len(flip_idx)} SNPs between reference and GWAS data on chromosome {chrs[idx]}.")
         
         # flip alleles between ref and eQTL
         _, flip_idx, _ = _allele_check(
@@ -312,7 +312,7 @@ def _process_raw(
         
         if len(flip_idx) != 0:
             df_snp.loc[flip_idx, "Z_eqtl"] = -1 * df_snp.iloc[flip_idx, :]["Z_eqtl"].values
-            log.logger.info(f"Flip {len(flip_idx)} SNPs between reference and eQTL data on chromosome {chrs[idx]}.")
+            log.logger.debug(f"Flip {len(flip_idx)} SNPs between reference and eQTL data on chromosome {chrs[idx]}.")
         
         # we have cases that same SNPs are the top eQTL for multiple genes
         # to make sure we contain as many genes as possible,
@@ -353,7 +353,7 @@ def _process_raw(
         f"Successfully prepared {df_wk.shape[0]} perturbed genes on {len(df_wk.CHR.unique())} chromosomes."
         + f" Start running Mr PEG on {len(ds_genes)} downstream genes."
     )
-    import pdb; pdb.set_trace()
+
     result = CleanData(
         beta=jnp.array(df_wk.BETA),
         inv_se=jnp.diag(1 / df_wk.SE.values),
@@ -469,10 +469,10 @@ def infer_peg(
     rng_key = random.PRNGKey(seed)
 
     X = jnp.einsum("i,ij->ij", eqtl, perturb)
-
+    import pdb; pdb.set_trace()
     inv_dvd = inv_se @ inv_ld @ inv_se
     mr_gamma, mr_z = _mrld(beta, X, inv_dvd)
-
+    import pdb; pdb.set_trace()
     mr_p = 2 * t.sf(jnp.abs(mr_z), beta.shape[0] - 1)
 
     if not no_permute:
