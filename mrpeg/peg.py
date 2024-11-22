@@ -442,7 +442,7 @@ def _make_null(result: null_result, empty: Any):
 
     new_perturb = random.permutation(gamma_key, perturb, 0)
     X_perturb = eqtl * new_perturb
-    mr_gamma, _ = _mrld(gwas_beta, X_perturb, inv_dvd)
+    mr_gamma = _mrld(gwas_beta, X_perturb, inv_dvd)
 
     carry = result._replace(
         rng_key=rng_key,
