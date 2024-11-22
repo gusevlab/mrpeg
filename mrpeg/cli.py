@@ -97,10 +97,10 @@ def run_peg(args):
             infer_result,
             columns=[
                 "mr_gamma",
-                "mr_z",
-                "mr_p",
+                # "mr_z",
+                # "mr_p",
                 "mr_z_perm",
-                "mr_p_perm",
+                # "mr_p_perm",
             ],
         )
 
@@ -110,7 +110,7 @@ def run_peg(args):
                 "tissue": args.tissue,
                 "gene_name": clean_data.gene_names,
                 "n_perturb": clean_data.beta.shape[0],
-                "n_perturb_sig": np.sum(np.abs(clean_data.perturb) > 1.96, axis=0),
+                # "n_perturb_sig": np.sum(np.abs(clean_data.perturb) > 1.96, axis=0),
             }
         )
         df_final = pd.concat([df_result, df_infer], axis=1)

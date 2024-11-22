@@ -538,14 +538,14 @@ def infer_peg(
     else:
         mr_z_perm = jnp.array([jnp.nan] * X.shape[1])
         mr_p_perm = jnp.array([jnp.nan] * X.shape[1])
-    import pdb; pdb.set_trace()
+
     result = jnp.column_stack(
         (
             mr_gamma,
-            mr_z,
-            mr_p,
+            # mr_z,
+            # mr_p,
             mr_z_perm,
-            mr_p_perm,
+            # mr_p_perm,
         )
     )
 
