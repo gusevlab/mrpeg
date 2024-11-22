@@ -79,6 +79,7 @@ def run_peg(args):
             args.eqtl_cols,
             args.ref_geno,
             args.keep_ambiguous,
+            args.top_signal,
         )
 
         infer_result = peg.infer_peg(
@@ -284,14 +285,14 @@ def build_peg_parser(subp):
     )
 
     peg.add_argument(
-        "--ref_geno",
+        "--ref-geno",
         default=None,
         type=str,
         help=("'*' to split",),
     )
 
     peg.add_argument(
-        "--gwas_cols",
+        "--gwas-cols",
         nargs=6,
         default=["CHR", "SNP", "A1", "A0", "BETA", "SE"],
         type=str,
@@ -301,7 +302,7 @@ def build_peg_parser(subp):
     )
 
     peg.add_argument(
-        "--eqtl_cols",
+        "--eqtl-cols",
         nargs=6,
         default=["CHR", "SNP", "A1", "A0", "Z", "GENE"],
         type=str,
@@ -320,8 +321,18 @@ def build_peg_parser(subp):
     )
 
     peg.add_argument(
-        "--perm_number",
-        default=500,
+        "--perm-number",
+        default=300,
+        type=int,
+        help=(
+            "Integer number of shared effects pre-specified.",
+            " Default is 5. Larger number may cause slow inference.",
+        ),
+    )
+    
+    peg.add_argument(
+        "--top-signal",
+        default=50,
         type=int,
         help=(
             "Integer number of shared effects pre-specified.",
@@ -330,7 +341,7 @@ def build_peg_parser(subp):
     )
 
     peg.add_argument(
-        "--no_permute",
+        "--no-permute",
         default=False,
         action="store_true",
         help=(

@@ -106,7 +106,7 @@ def _prepare_gwas(gwas: str, gwas_cols: List, keep_ambiguous: bool) -> pd.DataFr
 
     # add a check on SE negative value
     if (df_gwas["SE"] <= 0).any():
-        log.logger.info(f"GWAS data contains SNP with 0 or negative value of standard error. Will remove these SNPs.")
+        log.logger.debug(f"GWAS data contains SNP with 0 or negative value of standard error. Will remove these SNPs.")
         df_gwas = df_gwas[df_gwas.SE > 0]
 
     if not keep_ambiguous:
@@ -157,7 +157,7 @@ def _prepare_eqtl(eqtl: str, eqtl_cols: List) -> pd.DataFrame:
     return df_eqtl
 
 
-def _prepare_perturb(perturb: str) -> Tuple[pd.DataFrame, List]:
+def _prepare_perturb(perturb: str, top_signal: int) -> Tuple[pd.DataFrame, List]:
     df_perturb = (
         pd.read_csv(perturb, sep="\t")
         .replace([jnp.inf, -jnp.inf], jnp.nan, inplace=False)
@@ -168,6 +168,13 @@ def _prepare_perturb(perturb: str) -> Tuple[pd.DataFrame, List]:
     df_perturb = df_perturb.replace(jnp.nan, 0)
     ds_genes = df_perturb.columns[1 : df_perturb.shape[1]].tolist()
 
+    if top_signal == 0:
+        log.logger.debug("Inference will use all perturbed genes.")
+    else:
+        if top_signal > df_perturb.shape[0]:
+            log.logger.warning("Specified number of top signal is larger than the" +
+                               "number of perturbed genes. Will use all perturbed genes.")
+    
     log.logger.info(
         f"Perturb matrix contains {df_perturb.shape[0]} perturbed genes and {len(ds_genes)} downstream genes."
     )
@@ -203,6 +210,7 @@ def _process_raw(
     eqtl_cols: List,
     ref_geno: str,
     keep_ambiguous: bool,
+    top_signal: int,
 ) -> CleanData:
     # read in GWAS data
     df_gwas = _prepare_gwas(gwas, gwas_cols, keep_ambiguous)
@@ -211,7 +219,7 @@ def _process_raw(
     df_eqtl = _prepare_eqtl(eqtl, eqtl_cols)
 
     # read in perturb data
-    df_perturb, ds_genes = _prepare_perturb(perturb)
+    df_perturb, ds_genes = _prepare_perturb(perturb, top_signal)
 
     df_wk = (
         df_eqtl[df_eqtl.GENE.isin(df_perturb.GENE)]
@@ -348,6 +356,8 @@ def _process_raw(
     log.logger.info(
         f"{num_diff} genes are removed because no eQTLs in the reference data."
     )
+    
+    import pdb; pdb.set_trace()
 
     log.logger.info(
         f"Successfully prepared {df_wk.shape[0]} perturbed genes on {len(df_wk.CHR.unique())} chromosomes."
