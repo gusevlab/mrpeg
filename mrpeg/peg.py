@@ -201,6 +201,8 @@ def _allele_check(
 
     return correct_idx, flipped_idx, wrong_idx
 
+def create_diagonal(column):
+    return jnp.diag(column)
 
 def _process_raw(
     gwas: str,
@@ -358,11 +360,6 @@ def _process_raw(
     )
     
     import pdb; pdb.set_trace()
-
-    log.logger.info(
-        f"Successfully prepared {df_wk.shape[0]} perturbed genes on {len(df_wk.CHR.unique())} chromosomes."
-        + f" Start running Mr PEG on {len(ds_genes)} downstream genes."
-    )
     
     top_signal_index = {col: df_wk[col].abs().nlargest(top_signal).index for col in df_wk.columns[6:]}
 
@@ -385,6 +382,11 @@ def _process_raw(
     #     gene_names=ds_genes,
     # )
     
+    log.logger.info(
+        f"Successfully prepared {df_wk.shape[0]} perturbed genes on {len(df_wk.CHR.unique())} chromosomes."
+        + f" Start running Mr PEG on {len(ds_genes)} downstream genes."
+    )
+    
     result = CleanData(
         beta=beta_subset.T,
         inv_se=jnp.diag(1 / df_wk.SE.values),
@@ -395,10 +397,6 @@ def _process_raw(
     )
 
     return result
-
-def create_diagonal(column):
-    return jnp.diag(column)
-
 
 
 def _mrld(y, X, inv_dvd):
