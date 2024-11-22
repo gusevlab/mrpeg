@@ -20,7 +20,7 @@ with warnings.catch_warnings():
     from pandas_plink import read_plink
 
 from jax import random
-
+from jax import vmap
 __all__ = [
     "CleanData",
     "_parameter_check",
@@ -366,29 +366,39 @@ def _process_raw(
     
     top_signal_index = {col: df_wk[col].abs().nlargest(top_signal).index for col in df_wk.columns[6:]}
 
-    import pdb; pdb.set_trace()
     beta_subset = jnp.column_stack([df_wk.loc[top_signal_index[col], "BETA"].values for col in df_wk.columns[6:]])
-    import pdb; pdb.set_trace()
     se_subset = jnp.column_stack([df_wk.loc[top_signal_index[col], "SE"].values for col in df_wk.columns[6:]])
+    eqtl_subset = jnp.column_stack([df_wk.loc[top_signal_index[col], "Z_eqtl"].values for col in df_wk.columns[6:]])
+    perturb_subset = jnp.column_stack([(df_wk.loc[top_signal_index[col], col]).values for col in df_wk.columns[6:]])
+    
+    # Use vmap to vectorize over columns
+    inv_se_subset = vmap(create_diagonal, in_axes=1)(se_subset)
 
-    # Step 3: Create the second numpy array (X_subset) with X multiplied by the selected rows of the 97 columns
-    x_subset = jnp.column_stack([
-    (
-        df_wk.loc[top_signal_index[col], "Z_eqtl"] * df_wk.loc[top_signal_index[col], col]
-        ).values for col in df_wk.columns[6:]]
-                                )
     import pdb; pdb.set_trace()
     
+    # result = CleanData(
+    #     beta=jnp.array(df_wk.BETA),
+    #     inv_se=jnp.diag(1 / df_wk.SE.values),
+    #     eqtl=jnp.array(df_wk.Z_eqtl),
+    #     perturb=jnp.array(df_wk[ds_genes]),
+    #     inv_ld=jnp.array(inv_ld),
+    #     gene_names=ds_genes,
+    # )
+    
     result = CleanData(
-        beta=jnp.array(df_wk.BETA),
+        beta=beta_subset.T,
         inv_se=jnp.diag(1 / df_wk.SE.values),
-        eqtl=jnp.array(df_wk.Z_eqtl),
-        perturb=jnp.array(df_wk[ds_genes]),
+        eqtl=eqtl_subset.T,
+        perturb=perturb_subset.T,
         inv_ld=jnp.array(inv_ld),
         gene_names=ds_genes,
     )
 
     return result
+
+def create_diagonal(column):
+    return jnp.diag(column)
+
 
 
 def _mrld(y, X, inv_dvd):
