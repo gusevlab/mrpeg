@@ -362,6 +362,9 @@ def _process_raw(
     log.logger.info(
         f"{num_diff} genes are removed because no eQTLs in the reference data."
     )
+    
+    if top_signal == 0:
+        top_signal = df_wk.shape[0]
         
     top_signal_index = {col: df_wk[col].abs().nlargest(top_signal).index for col in df_wk.columns[6:]}
 
@@ -521,7 +524,8 @@ def infer_peg(
     updated_diag = jnp.diagonal(inv_ld, axis1=1, axis2=2) * inv_se**2
     inv_dvd = inv_ld.at[jnp.arange(n_ds)[:, None], jnp.arange(n_p), jnp.arange(n_p)].set(updated_diag)
     mr_gamma, mr_z = _mrld(beta, X, inv_dvd)
-    mr_p = 2 * t.sf(jnp.abs(mr_z), beta.shape[0] - 1)
+    import pdb; pdb.set_trace()
+    # mr_p = 2 * t.sf(jnp.abs(mr_z), beta.shape[0] - 1)
 
     if not no_permute:
         log.logger.info(f"Starting permutation test with {perm_number} times.")
