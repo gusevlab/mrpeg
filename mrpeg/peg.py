@@ -367,9 +367,7 @@ def _process_raw(
     se_subset = jnp.column_stack([df_wk.loc[top_signal_index[col], "SE"].values for col in df_wk.columns[6:]])
     eqtl_subset = jnp.column_stack([df_wk.loc[top_signal_index[col], "Z_eqtl"].values for col in df_wk.columns[6:]])
     perturb_subset = jnp.column_stack([(df_wk.loc[top_signal_index[col], col]).values for col in df_wk.columns[6:]])
-    
-    # Use vmap to vectorize over columns
-    inv_se_subset = vmap(create_diagonal, in_axes=1)(se_subset)
+    inv_ld_subset = jnp.array([inv_ld[jnp.array(indices),:][:,jnp.array(indices)] for _, indices in top_signal_index.items()])
 
     import pdb; pdb.set_trace()
     
@@ -389,7 +387,7 @@ def _process_raw(
     
     result = CleanData(
         beta=beta_subset.T,
-        inv_se=jnp.diag(1 / df_wk.SE.values),
+        inv_se=(1 / se_subset.T),
         eqtl=eqtl_subset.T,
         perturb=perturb_subset.T,
         inv_ld=jnp.array(inv_ld),
