@@ -363,15 +363,16 @@ def _process_raw(
     if top_signal == 0:
         top_signal = df_wk.shape[0]
     
+    # top_signal_index = {col: df_wk[col].abs().nlargest(top_signal).index for col in df_wk.columns[6:]}
+    top_signal_index = jnp.array([df_wk.iloc[:, i].abs().nlargest(top_signal).index for i in range(6, df_wk.shape[1])])
     import pdb; pdb.set_trace()
-    top_signal_index = {col: df_wk[col].abs().nlargest(top_signal).index for col in df_wk.columns[6:]}
-
     beta_subset = jnp.column_stack([df_wk.loc[top_signal_index[col], "BETA"].values for col in df_wk.columns[6:]])
     se_subset = jnp.column_stack([df_wk.loc[top_signal_index[col], "SE"].values for col in df_wk.columns[6:]])
     eqtl_subset = jnp.column_stack([df_wk.loc[top_signal_index[col], "Z_eqtl"].values for col in df_wk.columns[6:]])
     perturb_subset = jnp.column_stack([(df_wk.loc[top_signal_index[col], col]).values for col in df_wk.columns[6:]])
     inv_ld_subset = jnp.array([inv_ld[jnp.array(indices),:][:,jnp.array(indices)] for _, indices in top_signal_index.items()])
     
+    import pdb; pdb.set_trace()
     # result = CleanData(
     #     beta=jnp.array(df_wk.BETA),
     #     inv_se=jnp.diag(1 / df_wk.SE.values),
