@@ -398,19 +398,32 @@ def _process_raw(
 
 
 def _mrld(y, X, inv_dvd):
-    import pdb; pdb.set_trace()
-    gamma_num = jnp.squeeze(jnp.einsum("ij,jk,km->im", X.T, inv_dvd, y[:, jnp.newaxis]))
-    gamma_dem = jnp.einsum("ij,jk,ki->i", X.T, inv_dvd, X)
+    gamma_num = jnp.squeeze(jnp.einsum("ij,ijk,ik->i", X, inv_dvd, y))
+
+    gamma_dem = jnp.einsum("ij,ijk,ik->i", X, inv_dvd, X)
     mr_gamma = gamma_num / gamma_dem
 
-    epi_hat = y[:, jnp.newaxis] - jnp.einsum("ij,j->ij", X, mr_gamma)
+    epi_hat = y - jnp.einsum("ij,i->ij", X, mr_gamma)
     df = y.shape[0] - 1
-    sigma_sq_hat = (1 / df) * jnp.einsum("ij,jk,ki->i", epi_hat.T, inv_dvd, epi_hat)
+    sigma_sq_hat = (1 / df) * jnp.einsum("ij,ijk,ik->i", epi_hat, inv_dvd, epi_hat)
     se = jnp.sqrt(sigma_sq_hat / gamma_dem)
     mr_z = mr_gamma / se
 
     return mr_gamma, mr_z
 
+# def _mrld(y, X, inv_dvd):
+#     import pdb; pdb.set_trace()
+#     gamma_num = jnp.squeeze(jnp.einsum("ij,jk,km->im", X.T, inv_dvd, y[:, jnp.newaxis]))
+#     gamma_dem = jnp.einsum("ij,jk,ki->i", X.T, inv_dvd, X)
+#     mr_gamma = gamma_num / gamma_dem
+
+#     epi_hat = y[:, jnp.newaxis] - jnp.einsum("ij,j->ij", X, mr_gamma)
+#     df = y.shape[0] - 1
+#     sigma_sq_hat = (1 / df) * jnp.einsum("ij,jk,ki->i", epi_hat.T, inv_dvd, epi_hat)
+#     se = jnp.sqrt(sigma_sq_hat / gamma_dem)
+#     mr_z = mr_gamma / se
+
+#     return mr_gamma, mr_z
 
 class null_result(NamedTuple):
     gwas_beta: Array
@@ -504,11 +517,9 @@ def infer_peg(
 
     rng_key = random.PRNGKey(seed)
     n_ds, n_p = perturb.shape
-    import pdb; pdb.set_trace()
     X = eqtl * perturb
     updated_diag = jnp.diagonal(inv_ld, axis1=1, axis2=2) * inv_se**2
     inv_dvd = inv_ld.at[jnp.arange(n_ds)[:, None], jnp.arange(n_p), jnp.arange(n_p)].set(updated_diag)
-    import pdb; pdb.set_trace()
     mr_gamma, mr_z = _mrld(beta, X, inv_dvd)
     mr_p = 2 * t.sf(jnp.abs(mr_z), beta.shape[0] - 1)
 
@@ -527,7 +538,7 @@ def infer_peg(
     else:
         mr_z_perm = jnp.array([jnp.nan] * X.shape[1])
         mr_p_perm = jnp.array([jnp.nan] * X.shape[1])
-
+    import pdb; pdb.set_trace()
     result = jnp.column_stack(
         (
             mr_gamma,
