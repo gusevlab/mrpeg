@@ -362,7 +362,8 @@ def _process_raw(
     
     if top_signal == 0:
         top_signal = df_wk.shape[0]
-        
+    
+    import pdb; pdb.set_trace()
     top_signal_index = {col: df_wk[col].abs().nlargest(top_signal).index for col in df_wk.columns[6:]}
 
     beta_subset = jnp.column_stack([df_wk.loc[top_signal_index[col], "BETA"].values for col in df_wk.columns[6:]])
