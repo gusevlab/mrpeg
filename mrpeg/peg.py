@@ -205,9 +205,6 @@ def _allele_check(
 
     return correct_idx, flipped_idx, wrong_idx
 
-def create_diagonal(column):
-    return jnp.diag(column)
-
 def _process_raw(
     gwas: str,
     eqtl: str,
@@ -384,7 +381,7 @@ def _process_raw(
     # )
     
     log.logger.info(
-        f"Successfully prepared {df_wk.shape[0]} perturbed genes on {len(df_wk.CHR.unique())} chromosomes."
+        f"Successfully prepared {beta_subset.shape[1]} perturbed genes."
         + f" Start running Mr PEG on {len(ds_genes)} downstream genes."
     )
     
@@ -406,13 +403,13 @@ def _mrld(y, X, inv_dvd):
     gamma_dem = jnp.einsum("ij,ijk,ik->i", X, inv_dvd, X)
     mr_gamma = gamma_num / gamma_dem
 
-    epi_hat = y - jnp.einsum("ij,i->ij", X, mr_gamma)
-    df = y.shape[1] - 1
-    sigma_sq_hat = (1 / df) * jnp.einsum("ij,ijk,ik->i", epi_hat, inv_dvd, epi_hat)
-    se = jnp.sqrt(sigma_sq_hat / gamma_dem)
-    mr_z = mr_gamma / se
+    # epi_hat = y - jnp.einsum("ij,i->ij", X, mr_gamma)
+    # df = y.shape[1] - 1
+    # sigma_sq_hat = (1 / df) * jnp.einsum("ij,ijk,ik->i", epi_hat, inv_dvd, epi_hat)
+    # se = jnp.sqrt(sigma_sq_hat / gamma_dem)
+    # mr_z = mr_gamma / se
 
-    return mr_gamma, mr_z
+    return mr_gamma
 
 # def _mrld(y, X, inv_dvd):
 #     import pdb; pdb.set_trace()
@@ -466,7 +463,6 @@ def infer_peg(
     eqtl: ArrayLike,
     perturb: ArrayLike,
     inv_ld: ArrayLike,
-    no_permute: bool = False,
     perm_number: int = 500,
     seed: int = 12345,
 ) -> Array:
@@ -478,7 +474,6 @@ def infer_peg(
         eqtl: ArrayLike. eQTL Z scores.
         perturb: ArrayLike. Perturbation effect size matrix.
         inv_ld: ArrayLike. The inverse of the LD matrix.
-        no_permute: bool = False. Whether to perform permutation for effect size testing.
         perm_number: int = 500. The number of permutations.
         seed: int = 12345,
 
@@ -492,12 +487,12 @@ def infer_peg(
             "The seed specified for randomization is invalid. Choose a positive integer."
         )
 
-    if not no_permute and perm_number <= 0:
+    if perm_number <= 0:
         raise ValueError(
             "The the permutation number is invalid. Choose a positive integer."
         )
 
-    if not no_permute and perm_number <= 100:
+    if perm_number <= 100:
         log.logger.warning(
             "The number of permutation is low, and the estimate may be inaccurate."
         )
@@ -523,25 +518,20 @@ def infer_peg(
     X = eqtl * perturb
     updated_diag = jnp.diagonal(inv_ld, axis1=1, axis2=2) * inv_se**2
     inv_dvd = inv_ld.at[jnp.arange(n_ds)[:, None], jnp.arange(n_p), jnp.arange(n_p)].set(updated_diag)
-    mr_gamma, mr_z = _mrld(beta, X, inv_dvd)
-    import pdb; pdb.set_trace()
+    mr_gamma = _mrld(beta, X, inv_dvd)
     # mr_p = 2 * t.sf(jnp.abs(mr_z), beta.shape[0] - 1)
 
-    if not no_permute:
-        log.logger.info(f"Starting permutation test with {perm_number} times.")
-        init_null = null_result(
-            gwas_beta=beta,
-            eqtl=eqtl,
-            perturb=perturb,
-            inv_dvd=inv_dvd,
-            rng_key=rng_key,
-        )
+    log.logger.info(f"Starting permutation test with {perm_number} times.")
+    init_null = null_result(
+        gwas_beta=beta,
+        eqtl=eqtl,
+        perturb=perturb,
+        inv_dvd=inv_dvd,
+        rng_key=rng_key,
+    )
 
-        _, null_dist = lax.scan(_make_null, init_null, xs=None, length=perm_number)
-        mr_z_perm, mr_p_perm = _get_p(mr_gamma, null_dist)
-    else:
-        mr_z_perm = jnp.array([jnp.nan] * X.shape[1])
-        mr_p_perm = jnp.array([jnp.nan] * X.shape[1])
+    _, null_dist = lax.scan(_make_null, init_null, xs=None, length=perm_number)
+    mr_z_perm, _ = _get_p(mr_gamma, null_dist)
 
     result = jnp.column_stack(
         (

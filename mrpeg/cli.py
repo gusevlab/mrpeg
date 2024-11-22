@@ -88,7 +88,6 @@ def run_peg(args):
             clean_data.eqtl,
             clean_data.perturb,
             clean_data.inv_ld,
-            args.no_permute,
             args.perm_number,
             args.seed,
         )
@@ -337,17 +336,6 @@ def build_peg_parser(subp):
         help=(
             "Integer number of shared effects pre-specified.",
             " Default is 5. Larger number may cause slow inference.",
-        ),
-    )
-
-    peg.add_argument(
-        "--no-permute",
-        default=False,
-        action="store_true",
-        help=(
-            "Indicator to scale the genotype and phenotype data by standard deviation.",
-            " Default is False (to scale)."
-            " Specify --no_scale will store 'True' value, and may cause different inference.",
         ),
     )
 
