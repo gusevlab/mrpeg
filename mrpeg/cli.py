@@ -109,7 +109,7 @@ def run_peg(args):
                 "trait": args.trait,
                 "tissue": args.tissue,
                 "gene_name": clean_data.gene_names,
-                "n_perturb": clean_data.beta.shape[0],
+                "n_perturb": clean_data.beta.shape[1],
                 # "n_perturb_sig": np.sum(np.abs(clean_data.perturb) > 1.96, axis=0),
             }
         )
