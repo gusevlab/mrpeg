@@ -503,9 +503,12 @@ def infer_peg(
         )
 
     rng_key = random.PRNGKey(seed)
+    n_ds, n_p = perturb.shape
     import pdb; pdb.set_trace()
-    X = jnp.einsum("i,ij->ij", eqtl, perturb)
-    inv_dvd = inv_se @ inv_ld @ inv_se
+    X = eqtl * perturb
+    updated_diag = jnp.diagonal(inv_ld, axis1=1, axis2=2) * inv_se**2
+    inv_dvd = inv_ld.at[jnp.arange(n_ds)[:, None], jnp.arange(n_p), jnp.arange(n_p)].set(updated_diag)
+    import pdb; pdb.set_trace()
     mr_gamma, mr_z = _mrld(beta, X, inv_dvd)
     mr_p = 2 * t.sf(jnp.abs(mr_z), beta.shape[0] - 1)
 
