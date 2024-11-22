@@ -381,7 +381,7 @@ def _process_raw(
     # )
     
     log.logger.info(
-        f"Successfully prepared {beta_subset.shape[1]} perturbed genes."
+        f"Successfully prepared {beta_subset.shape[0]} perturbed genes."
         + f" Start running Mr PEG on {len(ds_genes)} downstream genes."
     )
     
