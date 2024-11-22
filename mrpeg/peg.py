@@ -165,6 +165,10 @@ def _prepare_perturb(perturb: str, top_signal: int) -> Tuple[pd.DataFrame, List]
         .reset_index(drop=True)
     )
     df_perturb = df_perturb.rename(columns={f"{df_perturb.columns[0]}": "GENE"})
+    
+    # remove duplicated perturbed genes
+    df_perturb = df_perturb.drop_duplicates(subset="GENE", keep="first")
+
     df_perturb = df_perturb.replace(jnp.nan, 0)
     ds_genes = df_perturb.columns[1 : df_perturb.shape[1]].tolist()
 
@@ -353,14 +357,12 @@ def _process_raw(
 
     inv_ld = block_diag(*inv_ld)
 
-    df_wk = pd.concat(keep_snps).merge(df_perturb, how="inner", on="GENE")
+    df_wk = pd.concat(keep_snps).merge(df_perturb, how="left", on="GENE").reset_index(drop=True)
     num_diff = num_shared - df_wk.shape[0]
     log.logger.info(
         f"{num_diff} genes are removed because no eQTLs in the reference data."
     )
-    
-    import pdb; pdb.set_trace()
-    
+        
     top_signal_index = {col: df_wk[col].abs().nlargest(top_signal).index for col in df_wk.columns[6:]}
 
     beta_subset = jnp.column_stack([df_wk.loc[top_signal_index[col], "BETA"].values for col in df_wk.columns[6:]])
@@ -368,8 +370,6 @@ def _process_raw(
     eqtl_subset = jnp.column_stack([df_wk.loc[top_signal_index[col], "Z_eqtl"].values for col in df_wk.columns[6:]])
     perturb_subset = jnp.column_stack([(df_wk.loc[top_signal_index[col], col]).values for col in df_wk.columns[6:]])
     inv_ld_subset = jnp.array([inv_ld[jnp.array(indices),:][:,jnp.array(indices)] for _, indices in top_signal_index.items()])
-
-    import pdb; pdb.set_trace()
     
     # result = CleanData(
     #     beta=jnp.array(df_wk.BETA),
@@ -390,7 +390,7 @@ def _process_raw(
         inv_se=(1 / se_subset.T),
         eqtl=eqtl_subset.T,
         perturb=perturb_subset.T,
-        inv_ld=jnp.array(inv_ld),
+        inv_ld=inv_ld_subset,
         gene_names=ds_genes,
     )
 
@@ -398,6 +398,7 @@ def _process_raw(
 
 
 def _mrld(y, X, inv_dvd):
+    import pdb; pdb.set_trace()
     gamma_num = jnp.squeeze(jnp.einsum("ij,jk,km->im", X.T, inv_dvd, y[:, jnp.newaxis]))
     gamma_dem = jnp.einsum("ij,jk,ki->i", X.T, inv_dvd, X)
     mr_gamma = gamma_num / gamma_dem
@@ -490,6 +491,10 @@ def infer_peg(
         or (beta.shape[0] != eqtl.shape[0])
         or (beta.shape[0] != perturb.shape[0])
         or (beta.shape[0] != inv_ld.shape[0])
+        or (beta.shape[1] != inv_se.shape[1])
+        or (beta.shape[1] != eqtl.shape[1])
+        or (beta.shape[1] != perturb.shape[1])
+        or (beta.shape[1] != inv_ld.shape[1])
     )
 
     if dim_fail:
@@ -498,7 +503,7 @@ def infer_peg(
         )
 
     rng_key = random.PRNGKey(seed)
-
+    import pdb; pdb.set_trace()
     X = jnp.einsum("i,ij->ij", eqtl, perturb)
     inv_dvd = inv_se @ inv_ld @ inv_se
     mr_gamma, mr_z = _mrld(beta, X, inv_dvd)
