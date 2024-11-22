@@ -363,7 +363,22 @@ def _process_raw(
         f"Successfully prepared {df_wk.shape[0]} perturbed genes on {len(df_wk.CHR.unique())} chromosomes."
         + f" Start running Mr PEG on {len(ds_genes)} downstream genes."
     )
+    
+    top_signal_index = {col: df_wk[col].abs().nlargest(top_signal).index for col in df_wk.columns[6:]}
 
+    import pdb; pdb.set_trace()
+    beta_subset = jnp.column_stack([df_wk.loc[top_signal_index[col], "BETA"].values for col in df_wk.columns[6:]])
+    import pdb; pdb.set_trace()
+    se_subset = jnp.column_stack([df_wk.loc[top_signal_index[col], "SE"].values for col in df_wk.columns[6:]])
+
+    # Step 3: Create the second numpy array (X_subset) with X multiplied by the selected rows of the 97 columns
+    x_subset = jnp.column_stack([
+    (
+        df_wk.loc[top_signal_index[col], "Z_eqtl"] * df_wk.loc[top_signal_index[col], col]
+        ).values for col in df_wk.columns[6:]]
+                                )
+    import pdb; pdb.set_trace()
+    
     result = CleanData(
         beta=jnp.array(df_wk.BETA),
         inv_se=jnp.diag(1 / df_wk.SE.values),
