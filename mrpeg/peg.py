@@ -407,7 +407,7 @@ def _mrld(y, X, inv_dvd):
     mr_gamma = gamma_num / gamma_dem
 
     epi_hat = y - jnp.einsum("ij,i->ij", X, mr_gamma)
-    df = y.shape[0] - 1
+    df = y.shape[1] - 1
     sigma_sq_hat = (1 / df) * jnp.einsum("ij,ijk,ik->i", epi_hat, inv_dvd, epi_hat)
     se = jnp.sqrt(sigma_sq_hat / gamma_dem)
     mr_z = mr_gamma / se
