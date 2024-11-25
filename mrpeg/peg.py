@@ -360,20 +360,21 @@ def _process_raw(
         f"{num_diff} genes are removed because no eQTLs in the reference data."
     )
     
-    if top_signal == 0:
-        top_signal = df_wk.shape[0]
-        perturb_subset = jnp.array(df_wk.iloc[:,6:])
-        beta_sbuset=jnp.tile(jnp.array(df_wk.BETA)[:, None], (1, perturb_subset.shape[1]))
-        se_subset = jnp.tile(jnp.array(df_wk.SE)[:, None], (1, perturb_subset.shape[1]))
-        eqtl_subset = jnp.tile(jnp.array(df_wk.Z_eqtl)[:, None], (1, perturb_subset.shape[1]))
-        inv_ld_subset = jnp.tile(inv_ld[None, :, :], (perturb_subset.shape[1], 1, 1))
-    else:
-        top_signal_index = jnp.array([df_wk.iloc[:, i].abs().nlargest(top_signal).index for i in range(6, df_wk.shape[1])]).T
-        perturb_subset = jnp.take_along_axis(jnp.array(df_wk.iloc[:,6:]), top_signal_index, axis=0)
-        beta_subset = jnp.take(jnp.array(df_wk["BETA"]).flatten(), top_signal_index)
-        se_subset = jnp.take(jnp.array(df_wk["SE"]).flatten(), top_signal_index)
-        eqtl_subset = jnp.take(jnp.array(df_wk["Z_eqtl"]).flatten(), top_signal_index)
-        inv_ld_subset = jnp.array([inv_ld[jnp.array(indices),:][:,jnp.array(indices)] for indices in top_signal_index.T])
+    import pdb; pdb.set_trace()
+    # if top_signal == 0:
+    #     top_signal = df_wk.shape[0]
+    #     perturb_subset = jnp.array(df_wk.iloc[:,6:])
+    #     beta_sbuset=jnp.tile(jnp.array(df_wk.BETA)[:, None], (1, perturb_subset.shape[1]))
+    #     se_subset = jnp.tile(jnp.array(df_wk.SE)[:, None], (1, perturb_subset.shape[1]))
+    #     eqtl_subset = jnp.tile(jnp.array(df_wk.Z_eqtl)[:, None], (1, perturb_subset.shape[1]))
+    #     inv_ld_subset = jnp.tile(inv_ld[None, :, :], (perturb_subset.shape[1], 1, 1))
+    # else:
+    #     top_signal_index = jnp.array([df_wk.iloc[:, i].abs().nlargest(top_signal).index for i in range(6, df_wk.shape[1])]).T
+    #     perturb_subset = jnp.take_along_axis(jnp.array(df_wk.iloc[:,6:]), top_signal_index, axis=0)
+    #     beta_subset = jnp.take(jnp.array(df_wk["BETA"]).flatten(), top_signal_index)
+    #     se_subset = jnp.take(jnp.array(df_wk["SE"]).flatten(), top_signal_index)
+    #     eqtl_subset = jnp.take(jnp.array(df_wk["Z_eqtl"]).flatten(), top_signal_index)
+    #     inv_ld_subset = jnp.array([inv_ld[jnp.array(indices),:][:,jnp.array(indices)] for indices in top_signal_index.T])
     
     # result = CleanData(
     #     beta=jnp.array(df_wk.BETA),
