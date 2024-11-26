@@ -451,6 +451,7 @@ class null_result(NamedTuple):
     eqtl: Array
     perturb: Array
     inv_dvd: Array
+    size: int
     rng_key: prng.PRNGKeyArray
 
 # def permute_non_nan_colwise(key, matrix):
@@ -471,12 +472,15 @@ class null_result(NamedTuple):
 def _make_null(result: null_result, empty: Any):
     del empty
 
-    gwas_beta, eqtl, perturb, inv_dvd, rng_key = result
+    gwas_beta, eqtl, perturb, inv_dvd, size_num, rng_key = result
 
     rng_key, gamma_key = random.split(rng_key, 2)
-    import pdb; pdb.set_trace()
-    # new_perturb = permute_non_nan_colwise(gamma_key, perturb)
     
+    new_perturb = random.permutation(gamma_key, perturb)
+    import pdb; pdb.set_trace()
+    haha = perturb.T.at[jnp.where(~jnp.isnan(perturb.T), size=size_num)].set(new_perturb.T[jnp.where(~jnp.isnan(new_perturb.T, size=size_num))]).T
+    
+    import pdb; pdb.set_trace()
     X = jnp.einsum("i,ij->ij", eqtl, new_perturb)
     mr_gamma = _mrld(gwas_beta, X, inv_dvd)
 
@@ -563,6 +567,7 @@ def infer_peg(
     # for idx in range(perm_number):
     #     new_perturb = perturb
     #     new_key, rng_key = random.split(rng_key, 2)
+    #     new_perturb = random.permutation(new_key, new_perturb)
     #     for jdx in range(n_d):
     #         indices = jnp.where(~jnp.isnan(new_perturb[:,jdx]))[0]
     #         permuted_values = random.permutation(new_key, new_perturb[indices,jdx])
@@ -576,6 +581,7 @@ def infer_peg(
         eqtl=eqtl,
         perturb=perturb,
         inv_dvd=inv_dvd,
+        size=len(jnp.where(~jnp.isnan(perturb))[0]),
         rng_key=rng_key,
     )
 
