@@ -33,7 +33,8 @@ __all__ = [
     "null_result",
     "_make_null",
     "_get_p",
-    "infer_peg",
+    "infer_peg1",
+    "infer_peg2",
 ]
 
 
@@ -360,7 +361,7 @@ def _process_raw(
         f"{num_diff} genes are removed because no eQTLs in the reference data."
     )
     
-
+    df_wk_old = df_wk.copy()
     df_wk_pert = df_wk.drop(["CHR", "SNP", "BETA", "SE", "Z_eqtl"], axis=1).melt(id_vars="GENE", var_name="name", value_name="value")
 
     threshold = df_wk_pert["value"].abs().quantile(1-top_signal)
@@ -401,35 +402,28 @@ def _process_raw(
         + f" Start running Mr PEG on {len(ds_genes)} downstream genes."
     )
     
-    # result = CleanData(
-    #     beta=beta_subset.T,
-    #     inv_se=(1 / se_subset.T),
-    #     eqtl=eqtl_subset.T,
-    #     perturb=perturb_subset.T,
-    #     inv_ld=inv_ld_subset,
-    #     gene_names=ds_genes,
-    # )
+    result2 = CleanData(
+        beta=jnp.array(df_wk_old.BETA),
+        inv_se=(1 / df_wk_old.SE.values),
+        eqtl=jnp.array(df_wk_old.Z_eqtl),
+        perturb=jnp.array(df_wk_old.iloc[:,7:]),
+        inv_ld=jnp.array(inv_ld),
+        gene_names=ds_genes,
+    )
     
 
-    return result
+    return result, result2
 
 
-# def _mrld(y, X, inv_dvd):
-#     gamma_num = jnp.squeeze(jnp.einsum("ij,ijk,ik->i", X, inv_dvd, y))
+def _mrld2(y, X, inv_dvd):
+    gamma_num = jnp.squeeze(jnp.einsum("ij,jk,km->im", X.T, inv_dvd, y[:, jnp.newaxis]))
+    gamma_dem = jnp.einsum("ij,jk,ki->i", X.T, inv_dvd, X)
+    mr_gamma = gamma_num / gamma_dem
 
-#     gamma_dem = jnp.einsum("ij,ijk,ik->i", X, inv_dvd, X)
-#     mr_gamma = gamma_num / gamma_dem
-
-#     # epi_hat = y - jnp.einsum("ij,i->ij", X, mr_gamma)
-#     # df = y.shape[1] - 1
-#     # sigma_sq_hat = (1 / df) * jnp.einsum("ij,ijk,ik->i", epi_hat, inv_dvd, epi_hat)
-#     # se = jnp.sqrt(sigma_sq_hat / gamma_dem)
-#     # mr_z = mr_gamma / se
-
-#     return mr_gamma
+    return mr_gamma
 
 
-def _mrld(y, X, inv_dvd):
+def _mrld1(y, X, inv_dvd):
     X_na = jnp.where(jnp.isnan(X), jnp.nan, 1)
 
     num1 = jnp.nan_to_num(jnp.einsum("ij,jk->ijk", X.T, inv_dvd), nan=0)
@@ -451,46 +445,19 @@ class null_result(NamedTuple):
     eqtl: Array
     perturb: Array
     inv_dvd: Array
-    size: int
     rng_key: prng.PRNGKeyArray
-    @staticmethod
-    def create(gwas_beta, eqtl, perturb, inv_dvd, size, rng_key):
-        """
-        Factory method to enforce static size and create a NullResult instance.
-        """
-        # Enforce static size (raise an error if it changes or is not compatible)
-        assert isinstance(size, int), "Size must be an integer."
-        return null_result(gwas_beta, eqtl, perturb, inv_dvd, size, rng_key)
     
-# def permute_non_nan_colwise(key, matrix):
-#     def permute_column(column, key):
-#         nan_mask = jnp.isnan(column) 
-#         # Extract the positions to permute
-#         permuted_values = random.permutation(key, column[~nan_mask])
-#         column=column.at[~nan_mask].set(permuted_values)
-#         return column
-#     # Generate random keys for each column
-#     for idx in range(matrix.shape[1]):
-#         import pdb; pdb.set_trace()
-#         key, new_key = random.split(key, 2)
-#         import pdb; pdb.set_trace()
-#         matrix = matrix.at[:,idx].set(permute_column(matrix[:,idx], new_key))
-#     return matrix
 
 def _make_null(result: null_result, empty: Any):
     del empty
 
-    gwas_beta, eqtl, perturb, inv_dvd, size_num, rng_key = result
+    gwas_beta, eqtl, perturb, inv_dvd, rng_key = result
 
     rng_key, gamma_key = random.split(rng_key, 2)
-    
-    new_perturb = random.permutation(gamma_key, perturb)
-    import pdb; pdb.set_trace()
-    haha = perturb.T.at[jnp.where(~jnp.isnan(perturb.T), size=size_num)].set(new_perturb.T[jnp.where(~jnp.isnan(new_perturb.T, size=size_num))]).T
-    
-    import pdb; pdb.set_trace()
-    X = jnp.einsum("i,ij->ij", eqtl, new_perturb)
-    mr_gamma = _mrld(gwas_beta, X, inv_dvd)
+
+    new_perturb = random.permutation(gamma_key, perturb, 0)
+    X_perturb = jnp.einsum("i,ij->ij", eqtl, new_perturb)
+    mr_gamma, _ = _mrld2(gwas_beta, X_perturb, inv_dvd)
 
     carry = result._replace(
         rng_key=rng_key,
@@ -505,7 +472,7 @@ def _get_p(mr, null):
     return stats_z, stats_p
 
 
-def infer_peg(
+def infer_peg1(
     beta: ArrayLike,
     inv_se: ArrayLike,
     eqtl: ArrayLike,
@@ -567,29 +534,85 @@ def infer_peg(
     X = jnp.einsum("i,ij->ij", eqtl, perturb)
     updated_diag = jnp.diagonal(inv_ld) * inv_se**2
     inv_dvd = inv_ld.at[jnp.arange(n_p), jnp.arange(n_p)].set(updated_diag)
-    mr_gamma = _mrld(beta, X, inv_dvd)
+    mr_gamma = _mrld1(beta, X, inv_dvd)
     # mr_p = 2 * t.sf(jnp.abs(mr_z), beta.shape[0] - 1)
 
-    # log.logger.info(f"Starting permutation test with {perm_number} times.")
-    # null_dist = jnp.zeros((perm_number, n_d))
-    # for idx in range(perm_number):
-    #     new_perturb = perturb
-    #     new_key, rng_key = random.split(rng_key, 2)
-    #     new_perturb = random.permutation(new_key, new_perturb)
-    #     for jdx in range(n_d):
-    #         indices = jnp.where(~jnp.isnan(new_perturb[:,jdx]))[0]
-    #         permuted_values = random.permutation(new_key, new_perturb[indices,jdx])
-    #         new_perturb=new_perturb.at[indices, jdx].set(permuted_values)
-    #     new_X = jnp.einsum("i,ij->ij", eqtl, new_perturb)
-    #     new_gamma = _mrld(beta, new_X, inv_dvd)
-    #     null_dist = null_dist.at[idx,:].set(new_gamma)
+    log.logger.info(f"Starting permutation test with {perm_number} times.")
+    null_dist = jnp.zeros((perm_number, n_d))
+    for idx in range(perm_number):
+        new_perturb = perturb
+        new_key, rng_key = random.split(rng_key, 2)
+        new_perturb = random.permutation(new_key, new_perturb)
+        import pdb; pdb.set_trace()
+        new_perturb = perturb.T.at[jnp.where(~jnp.isnan(perturb.T))].set(new_perturb.T[jnp.where(~jnp.isnan(new_perturb.T))]).T
+        new_X = jnp.einsum("i,ij->ij", eqtl, new_perturb)
+        new_gamma = _mrld1(beta, new_X, inv_dvd)
+        null_dist = null_dist.at[idx,:].set(new_gamma)
     
-    init_null = null_result.create(
+    mr_z_perm, _ = _get_p(mr_gamma, null_dist)
+
+    result = jnp.column_stack(
+        (
+            mr_gamma,
+            mr_z_perm,
+        )
+    )
+
+    return result
+
+def infer_peg2(
+    beta: ArrayLike,
+    inv_se: ArrayLike,
+    eqtl: ArrayLike,
+    perturb: ArrayLike,
+    inv_ld: ArrayLike,
+    perm_number: int = 500,
+    seed: int = 12345,
+) -> Array:
+    """The main inference function for running SuShiE.
+
+    Args:
+        beta: ArrayLike. GWAS effect sizes.
+        inv_se: ArrayLike. The diagonal matrix of the inverse of GWAS Standard error
+        eqtl: ArrayLike. eQTL Z scores.
+        perturb: ArrayLike. Perturbation effect size matrix.
+        inv_ld: ArrayLike. The inverse of the LD matrix.
+        perm_number: int = 500. The number of permutations.
+        seed: int = 12345,
+
+    Returns:
+        :py:obj:`SushieResult`: A SuShiE result object that contains prior (:py:obj:`Prior`),
+        posterior (:py:obj:`Posterior`), ``cs``, ``pip``, ``elbo``, and ``elbo_increase``.
+
+    """
+    if seed <= 0:
+        raise ValueError(
+            "The seed specified for randomization is invalid. Choose a positive integer."
+        )
+
+    if perm_number <= 0:
+        raise ValueError(
+            "The the permutation number is invalid. Choose a positive integer."
+        )
+
+    if perm_number < 100:
+        log.logger.warning(
+            "The number of permutation is low, and the estimate may be inaccurate."
+        )
+
+    rng_key = random.PRNGKey(seed)
+    n_p, n_d = perturb.shape
+    
+    X = jnp.einsum("i,ij->ij", eqtl, perturb)
+    updated_diag = jnp.diagonal(inv_ld) * inv_se**2
+    inv_dvd = inv_ld.at[jnp.arange(n_p), jnp.arange(n_p)].set(updated_diag)
+    mr_gamma = _mrld2(beta, X, inv_dvd)
+    
+    init_null = null_result(
         gwas_beta=beta,
         eqtl=eqtl,
         perturb=perturb,
         inv_dvd=inv_dvd,
-        size=len(jnp.where(~jnp.isnan(perturb))[0]),
         rng_key=rng_key,
     )
 
@@ -599,11 +622,9 @@ def infer_peg(
     result = jnp.column_stack(
         (
             mr_gamma,
-            # mr_z,
-            # mr_p,
             mr_z_perm,
-            # mr_p_perm,
         )
     )
 
     return result
+

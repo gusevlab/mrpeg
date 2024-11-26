@@ -71,7 +71,7 @@ def run_peg(args):
 
         peg._parameter_check(args)
 
-        clean_data = peg._process_raw(
+        clean_data1, clean_data2 = peg._process_raw(
             args.gwas,
             args.eqtl,
             args.perturb,
@@ -82,26 +82,42 @@ def run_peg(args):
             args.top_signal,
         )
 
-        infer_result = peg.infer_peg(
-            clean_data.beta,
-            clean_data.inv_se,
-            clean_data.eqtl,
-            clean_data.perturb,
-            clean_data.inv_ld,
+        infer_result1 = peg.infer_peg1(
+            clean_data1.beta,
+            clean_data1.inv_se,
+            clean_data1.eqtl,
+            clean_data1.perturb,
+            clean_data1.inv_ld,
+            args.perm_number,
+            args.seed,
+        )
+        
+        infer_result2 = peg.infer_peg2(
+            clean_data2.beta,
+            clean_data2.inv_se,
+            clean_data2.eqtl,
+            clean_data2.perturb,
+            clean_data2.inv_ld,
             args.perm_number,
             args.seed,
         )
 
-        df_infer = pd.DataFrame(
-            infer_result,
+        df_infer1 = pd.DataFrame(
+            infer_result1,
             columns=[
                 "mr_gamma",
-                # "mr_z",
-                # "mr_p",
                 "mr_z_perm",
-                # "mr_p_perm",
             ],
         )
+        
+        df_infer2 = pd.DataFrame(
+            infer_result2,
+            columns=[
+                "mr_gamma",
+                "mr_z_perm",
+            ],
+        )
+        
         import pdb; pdb.set_trace()
         df_result = pd.DataFrame(
             {
