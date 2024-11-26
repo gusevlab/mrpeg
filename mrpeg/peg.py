@@ -183,7 +183,7 @@ def _prepare_perturb(perturb: str, top_signal: int) -> Tuple[pd.DataFrame, List]
         f"Perturb matrix contains {df_perturb.shape[0]} perturbed genes and {len(ds_genes)} downstream genes."
     )
 
-    return df_perturb, ds_genes
+    return df_perturb
 
 
 def _allele_check(
@@ -222,7 +222,7 @@ def _process_raw(
     df_eqtl = _prepare_eqtl(eqtl, eqtl_cols)
 
     # read in perturb data
-    df_perturb, ds_genes = _prepare_perturb(perturb, top_signal)
+    df_perturb = _prepare_perturb(perturb, top_signal)
 
     df_wk = (
         df_eqtl[df_eqtl.GENE.isin(df_perturb.GENE)]
@@ -361,6 +361,17 @@ def _process_raw(
     )
     
     import pdb; pdb.set_trace()
+    df_wk_pert = df_wk.drop(["CHR", "SNP", "BETA", "SE", "Z_eqtl"], axis=1).melt(id_vars="GENE", var_name="name", value_name="value")
+
+    threshold = df_wk_pert["value"].abs().quantile(1-top_signal)
+
+    filtered_long_df = df_wk_pert[df_wk_pert["value"].abs() >= threshold].groupby("name").filter(lambda x: len(x) >= 10).pivot(index="GENE", columns="name", values="value").reset_index()
+
+    df_wk = df_wk[["CHR", "SNP", "BETA", "SE", "Z_eqtl", "GENE"]].reset_index().merge(filtered_long_df, how="inner", on="GENE")
+    
+    inv_ld_subset = inv_ld[df_wk["index"].values,:][:,df_wk["index"].values]
+    
+    ds_genes = df_wk.columns[7:].tolist()
     # if top_signal == 0:
     #     top_signal = df_wk.shape[0]
     #     perturb_subset = jnp.array(df_wk.iloc[:,6:])
@@ -376,59 +387,64 @@ def _process_raw(
     #     eqtl_subset = jnp.take(jnp.array(df_wk["Z_eqtl"]).flatten(), top_signal_index)
     #     inv_ld_subset = jnp.array([inv_ld[jnp.array(indices),:][:,jnp.array(indices)] for indices in top_signal_index.T])
     
-    # result = CleanData(
-    #     beta=jnp.array(df_wk.BETA),
-    #     inv_se=jnp.diag(1 / df_wk.SE.values),
-    #     eqtl=jnp.array(df_wk.Z_eqtl),
-    #     perturb=jnp.array(df_wk[ds_genes]),
-    #     inv_ld=jnp.array(inv_ld),
-    #     gene_names=ds_genes,
-    # )
+    result = CleanData(
+        beta=jnp.array(df_wk.BETA),
+        inv_se=jnp.diag(1 / df_wk.SE.values),
+        eqtl=jnp.array(df_wk.Z_eqtl),
+        perturb=jnp.array(df_wk.iloc[:,7:]),
+        inv_ld=jnp.array(inv_ld_subset),
+        gene_names=ds_genes,
+    )
     
     log.logger.info(
-        f"Successfully prepared {beta_subset.shape[0]} perturbed genes."
+        f"Successfully prepared {beta.shape[0]} perturbed genes."
         + f" Start running Mr PEG on {len(ds_genes)} downstream genes."
     )
     
-    result = CleanData(
-        beta=beta_subset.T,
-        inv_se=(1 / se_subset.T),
-        eqtl=eqtl_subset.T,
-        perturb=perturb_subset.T,
-        inv_ld=inv_ld_subset,
-        gene_names=ds_genes,
-    )
+    # result = CleanData(
+    #     beta=beta_subset.T,
+    #     inv_se=(1 / se_subset.T),
+    #     eqtl=eqtl_subset.T,
+    #     perturb=perturb_subset.T,
+    #     inv_ld=inv_ld_subset,
+    #     gene_names=ds_genes,
+    # )
+    
 
     return result
 
 
-def _mrld(y, X, inv_dvd):
-    gamma_num = jnp.squeeze(jnp.einsum("ij,ijk,ik->i", X, inv_dvd, y))
+# def _mrld(y, X, inv_dvd):
+#     gamma_num = jnp.squeeze(jnp.einsum("ij,ijk,ik->i", X, inv_dvd, y))
 
-    gamma_dem = jnp.einsum("ij,ijk,ik->i", X, inv_dvd, X)
+#     gamma_dem = jnp.einsum("ij,ijk,ik->i", X, inv_dvd, X)
+#     mr_gamma = gamma_num / gamma_dem
+
+#     # epi_hat = y - jnp.einsum("ij,i->ij", X, mr_gamma)
+#     # df = y.shape[1] - 1
+#     # sigma_sq_hat = (1 / df) * jnp.einsum("ij,ijk,ik->i", epi_hat, inv_dvd, epi_hat)
+#     # se = jnp.sqrt(sigma_sq_hat / gamma_dem)
+#     # mr_z = mr_gamma / se
+
+#     return mr_gamma
+
+
+def _mrld(y, X, inv_dvd):
+    X_na = jnp.where(jnp.isnan(X), jnp.nan, 1)
+
+    num1 = jnp.nan_to_num(jnp.einsum("ij,jk->ijk", X.T, inv_dvd), nan=0)
+    new_num1 = jnp.sum(jnp.einsum("ijk,ik->ijk",num1, X_na.T), axis=1)
+    gamma_num = jnp.sum(jnp.nan_to_num(jnp.einsum("ik,km->ikm", new_num1, y[:,jnp.newaxis]), nan=0), axis=[1,2])
+    gamma_dem = jnp.sum(jnp.nan_to_num(jnp.einsum("ik,ki->ik", new_num1, X), nan=0), axis=[1])
     mr_gamma = gamma_num / gamma_dem
 
-    # epi_hat = y - jnp.einsum("ij,i->ij", X, mr_gamma)
-    # df = y.shape[1] - 1
-    # sigma_sq_hat = (1 / df) * jnp.einsum("ij,ijk,ik->i", epi_hat, inv_dvd, epi_hat)
+    # epi_hat = y[:, jnp.newaxis] - jnp.einsum("ij,j->ij", X, mr_gamma)
+    # df = y.shape[0] - 1
+    # sigma_sq_hat = (1 / df) * jnp.einsum("ij,jk,ki->i", epi_hat.T, inv_dvd, epi_hat)
     # se = jnp.sqrt(sigma_sq_hat / gamma_dem)
     # mr_z = mr_gamma / se
 
     return mr_gamma
-
-# def _mrld(y, X, inv_dvd):
-#     import pdb; pdb.set_trace()
-#     gamma_num = jnp.squeeze(jnp.einsum("ij,jk,km->im", X.T, inv_dvd, y[:, jnp.newaxis]))
-#     gamma_dem = jnp.einsum("ij,jk,ki->i", X.T, inv_dvd, X)
-#     mr_gamma = gamma_num / gamma_dem
-
-#     epi_hat = y[:, jnp.newaxis] - jnp.einsum("ij,j->ij", X, mr_gamma)
-#     df = y.shape[0] - 1
-#     sigma_sq_hat = (1 / df) * jnp.einsum("ij,jk,ki->i", epi_hat.T, inv_dvd, epi_hat)
-#     se = jnp.sqrt(sigma_sq_hat / gamma_dem)
-#     mr_z = mr_gamma / se
-
-#     return mr_gamma, mr_z
 
 class null_result(NamedTuple):
     gwas_beta: Array
@@ -437,6 +453,21 @@ class null_result(NamedTuple):
     inv_dvd: Array
     rng_key: prng.PRNGKeyArray
 
+def permute_non_nan_colwise(key, matrix):
+    def permute_column(column, key):
+        nan_mask = jnp.isnan(column)  # Identify NaNs
+        non_nan_values = column[~nan_mask]  # Extract non-NaN values
+        permuted_values = random.permutation(key, non_nan_values)  # Permute non-NaN values
+        # Reconstruct the column by placing permuted values back into the original positions
+        result = jnp.where(nan_mask, jnp.nan, permuted_values)
+        return result
+
+    # Generate random keys for each column
+    keys = random.split(key, matrix.shape[1])
+
+    # Apply the permutation column by column
+    permuted_matrix = vmap(permute_column, in_axes=(1, 0))(matrix, keys)
+    return permuted_matrix
 
 def _make_null(result: null_result, empty: Any):
     del empty
@@ -444,8 +475,9 @@ def _make_null(result: null_result, empty: Any):
     gwas_beta, eqtl, perturb, inv_dvd, rng_key = result
 
     rng_key, gamma_key = random.split(rng_key, 2)
-
-    new_perturb = random.permutation(gamma_key, perturb, 0)
+    import pdb; pdb.set_trace()
+    new_perturb = permute_non_nan_colwise(gamma_key, perturb)
+    
     X_perturb = eqtl * new_perturb
     mr_gamma = _mrld(gwas_beta, X_perturb, inv_dvd)
 
@@ -502,24 +534,26 @@ def infer_peg(
             "The number of permutation is low, and the estimate may be inaccurate."
         )
 
-    dim_fail = (
-        (beta.shape[0] != inv_se.shape[0])
-        or (beta.shape[0] != eqtl.shape[0])
-        or (beta.shape[0] != perturb.shape[0])
-        or (beta.shape[0] != inv_ld.shape[0])
-        or (beta.shape[1] != inv_se.shape[1])
-        or (beta.shape[1] != eqtl.shape[1])
-        or (beta.shape[1] != perturb.shape[1])
-        or (beta.shape[1] != inv_ld.shape[1])
-    )
+    # dim_fail = (
+    #     (beta.shape[0] != inv_se.shape[0])
+    #     or (beta.shape[0] != eqtl.shape[0])
+    #     or (beta.shape[0] != perturb.shape[0])
+    #     or (beta.shape[0] != inv_ld.shape[0])
+    #     or (beta.shape[1] != inv_se.shape[1])
+    #     or (beta.shape[1] != eqtl.shape[1])
+    #     or (beta.shape[1] != perturb.shape[1])
+    #     or (beta.shape[1] != inv_ld.shape[1])
+    # )
 
-    if dim_fail:
-        raise ValueError(
-            "The dimension of GWAS, eQTL, perturb, and the inverse of LD do not match."
-        )
+    # if dim_fail:
+    #     raise ValueError(
+    #         "The dimension of GWAS, eQTL, perturb, and the inverse of LD do not match."
+    #     )
 
     rng_key = random.PRNGKey(seed)
     n_ds, n_p = perturb.shape
+    import pdb; pdb.set_trace()
+    
     X = eqtl * perturb
     updated_diag = jnp.diagonal(inv_ld, axis1=1, axis2=2) * inv_se**2
     inv_dvd = inv_ld.at[jnp.arange(n_ds)[:, None], jnp.arange(n_p), jnp.arange(n_p)].set(updated_diag)

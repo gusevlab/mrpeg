@@ -331,7 +331,7 @@ def build_peg_parser(subp):
     
     peg.add_argument(
         "--top-signal",
-        default=50,
+        default=0.01,
         type=int,
         help=(
             "Integer number of shared effects pre-specified.",
