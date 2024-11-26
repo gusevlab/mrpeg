@@ -453,38 +453,38 @@ class null_result(NamedTuple):
     inv_dvd: Array
     rng_key: prng.PRNGKeyArray
 
-def permute_non_nan_colwise(key, matrix):
-    def permute_column(column, key):
-        nan_mask = jnp.isnan(column) 
-        # Extract the positions to permute
-        permuted_values = random.permutation(key, column[~nan_mask])
-        column=column.at[~nan_mask].set(permuted_values)
-        return column
-    # Generate random keys for each column
-    for idx in range(matrix.shape[1]):
-        import pdb; pdb.set_trace()
-        key, new_key = random.split(key, 2)
-        import pdb; pdb.set_trace()
-        matrix = matrix.at[:,idx].set(permute_column(matrix[:,idx], new_key))
-    return matrix
+# def permute_non_nan_colwise(key, matrix):
+#     def permute_column(column, key):
+#         nan_mask = jnp.isnan(column) 
+#         # Extract the positions to permute
+#         permuted_values = random.permutation(key, column[~nan_mask])
+#         column=column.at[~nan_mask].set(permuted_values)
+#         return column
+#     # Generate random keys for each column
+#     for idx in range(matrix.shape[1]):
+#         import pdb; pdb.set_trace()
+#         key, new_key = random.split(key, 2)
+#         import pdb; pdb.set_trace()
+#         matrix = matrix.at[:,idx].set(permute_column(matrix[:,idx], new_key))
+#     return matrix
 
-def _make_null(result: null_result, empty: Any):
-    del empty
+# def _make_null(result: null_result, empty: Any):
+#     del empty
 
-    gwas_beta, eqtl, perturb, inv_dvd, rng_key = result
+#     gwas_beta, eqtl, perturb, inv_dvd, rng_key = result
 
-    rng_key, gamma_key = random.split(rng_key, 2)
-    import pdb; pdb.set_trace()
-    new_perturb = permute_non_nan_colwise(gamma_key, perturb)
+#     rng_key, gamma_key = random.split(rng_key, 2)
+#     import pdb; pdb.set_trace()
+#     new_perturb = permute_non_nan_colwise(gamma_key, perturb)
     
-    X = jnp.einsum("i,ij->ij", eqtl, new_perturb)
-    mr_gamma = _mrld(gwas_beta, X, inv_dvd)
+#     X = jnp.einsum("i,ij->ij", eqtl, new_perturb)
+#     mr_gamma = _mrld(gwas_beta, X, inv_dvd)
 
-    carry = result._replace(
-        rng_key=rng_key,
-    )
+#     carry = result._replace(
+#         rng_key=rng_key,
+#     )
 
-    return carry, mr_gamma
+#     return carry, mr_gamma
 
 
 def _get_p(mr, null):
@@ -550,7 +550,7 @@ def infer_peg(
     #     )
 
     rng_key = random.PRNGKey(seed)
-    n_p, _ = perturb.shape
+    n_p, n_d = perturb.shape
     
     X = jnp.einsum("i,ij->ij", eqtl, perturb)
     updated_diag = jnp.diagonal(inv_ld) * inv_se**2
@@ -560,15 +560,28 @@ def infer_peg(
     # mr_p = 2 * t.sf(jnp.abs(mr_z), beta.shape[0] - 1)
 
     log.logger.info(f"Starting permutation test with {perm_number} times.")
-    init_null = null_result(
-        gwas_beta=beta,
-        eqtl=eqtl,
-        perturb=perturb,
-        inv_dvd=inv_dvd,
-        rng_key=rng_key,
-    )
+    null_dist = jnp.zeros((perm_number, n_d))
+    for idx in range(perm_number):
+        new_perturb = perturb
+        new_key, rng_key = random.split(rng_key, 2)
+        for jdx in range(n_d):
+            indices = jnp.where(~jnp.isnan(new_perturb[:,jdx]))[0]
+            perm_num = jnp.take(new_perturb[:,jdx], indices)
+            permuted_values = random.permutation(new_key, new_perturb[indices,jdx])
+            new_perturb=new_perturb.at[indices, jdx].set(permuted_values)
+        new_X = jnp.einsum("i,ij->ij", eqtl, new_perturb)
+        mr_gamma = _mrld(beta, new_X, inv_dvd)
+        import pdb; pdb.set_trace()
+        null_dist = null_dist.at[idx,:].set(mr_gamma)
+    # init_null = null_result(
+    #     gwas_beta=beta,
+    #     eqtl=eqtl,
+    #     perturb=perturb,
+    #     inv_dvd=inv_dvd,
+    #     rng_key=rng_key,
+    # )
 
-    _, null_dist = lax.scan(_make_null, init_null, xs=None, length=perm_number)
+    # _, null_dist = lax.scan(_make_null, init_null, xs=None, length=perm_number)
     mr_z_perm, _ = _get_p(mr_gamma, null_dist)
 
     result = jnp.column_stack(
