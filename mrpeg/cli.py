@@ -332,7 +332,7 @@ def build_peg_parser(subp):
     peg.add_argument(
         "--top-signal",
         default=0.01,
-        type=int,
+        type=float,
         help=(
             "Integer number of shared effects pre-specified.",
             " Default is 5. Larger number may cause slow inference.",

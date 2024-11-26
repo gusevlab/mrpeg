@@ -529,7 +529,7 @@ def infer_peg(
             "The the permutation number is invalid. Choose a positive integer."
         )
 
-    if perm_number <= 100:
+    if perm_number < 100:
         log.logger.warning(
             "The number of permutation is low, and the estimate may be inaccurate."
         )
