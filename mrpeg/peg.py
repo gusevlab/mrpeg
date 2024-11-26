@@ -551,13 +551,13 @@ def infer_peg(
     #     )
 
     rng_key = random.PRNGKey(seed)
-    n_ds, n_p = perturb.shape
-    import pdb; pdb.set_trace()
+    n_p, _ = perturb.shape
     
-    X = eqtl * perturb
-    updated_diag = jnp.diagonal(inv_ld, axis1=1, axis2=2) * inv_se**2
-    inv_dvd = inv_ld.at[jnp.arange(n_ds)[:, None], jnp.arange(n_p), jnp.arange(n_p)].set(updated_diag)
+    X = jnp.einsum("i,ij->ij", eqtl, perturb)
+    updated_diag = jnp.diagonal(inv_ld) * inv_se**2
+    inv_dvd = inv_ld.at[jnp.arange(n_p), jnp.arange(n_p)].set(updated_diag)
     mr_gamma = _mrld(beta, X, inv_dvd)
+    import pdb; pdb.set_trace()
     # mr_p = 2 * t.sf(jnp.abs(mr_z), beta.shape[0] - 1)
 
     log.logger.info(f"Starting permutation test with {perm_number} times.")
