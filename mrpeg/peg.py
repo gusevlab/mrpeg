@@ -462,7 +462,9 @@ def permute_non_nan_colwise(key, matrix):
         return column
     # Generate random keys for each column
     for idx in range(matrix.shape[1]):
+        import pdb; pdb.set_trace()
         key, new_key = random.split(key, 2)
+        import pdb; pdb.set_trace()
         matrix = matrix.at[:,idx].set(permute_column(matrix[:,idx], new_key))
     return matrix
 
@@ -476,7 +478,7 @@ def _make_null(result: null_result, empty: Any):
     new_perturb = permute_non_nan_colwise(gamma_key, perturb)
     
     X = jnp.einsum("i,ij->ij", eqtl, new_perturb)
-    mr_gamma = _mrld(gwas_beta, X_perturb, inv_dvd)
+    mr_gamma = _mrld(gwas_beta, X, inv_dvd)
 
     carry = result._replace(
         rng_key=rng_key,
