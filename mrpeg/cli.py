@@ -102,7 +102,7 @@ def run_peg(args):
                 # "mr_p_perm",
             ],
         )
-
+        import pdb; pdb.set_trace()
         df_result = pd.DataFrame(
             {
                 "trait": args.trait,
@@ -321,7 +321,7 @@ def build_peg_parser(subp):
 
     peg.add_argument(
         "--perm-number",
-        default=300,
+        default=200,
         type=int,
         help=(
             "Integer number of shared effects pre-specified.",

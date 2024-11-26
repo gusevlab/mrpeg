@@ -556,7 +556,6 @@ def infer_peg(
     updated_diag = jnp.diagonal(inv_ld) * inv_se**2
     inv_dvd = inv_ld.at[jnp.arange(n_p), jnp.arange(n_p)].set(updated_diag)
     mr_gamma = _mrld(beta, X, inv_dvd)
-    import pdb; pdb.set_trace()
     # mr_p = 2 * t.sf(jnp.abs(mr_z), beta.shape[0] - 1)
 
     log.logger.info(f"Starting permutation test with {perm_number} times.")
@@ -566,13 +565,12 @@ def infer_peg(
         new_key, rng_key = random.split(rng_key, 2)
         for jdx in range(n_d):
             indices = jnp.where(~jnp.isnan(new_perturb[:,jdx]))[0]
-            perm_num = jnp.take(new_perturb[:,jdx], indices)
             permuted_values = random.permutation(new_key, new_perturb[indices,jdx])
             new_perturb=new_perturb.at[indices, jdx].set(permuted_values)
         new_X = jnp.einsum("i,ij->ij", eqtl, new_perturb)
-        mr_gamma = _mrld(beta, new_X, inv_dvd)
-        import pdb; pdb.set_trace()
-        null_dist = null_dist.at[idx,:].set(mr_gamma)
+        new_gamma = _mrld(beta, new_X, inv_dvd)
+        null_dist = null_dist.at[idx,:].set(new_gamma)
+    
     # init_null = null_result(
     #     gwas_beta=beta,
     #     eqtl=eqtl,
