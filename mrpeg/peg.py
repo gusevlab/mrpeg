@@ -584,7 +584,7 @@ def infer_peg(
     #     new_gamma = _mrld(beta, new_X, inv_dvd)
     #     null_dist = null_dist.at[idx,:].set(new_gamma)
     
-    init_null = null_result(
+    init_null = null_result.create(
         gwas_beta=beta,
         eqtl=eqtl,
         perturb=perturb,
