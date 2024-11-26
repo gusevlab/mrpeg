@@ -360,7 +360,7 @@ def _process_raw(
         f"{num_diff} genes are removed because no eQTLs in the reference data."
     )
     
-    import pdb; pdb.set_trace()
+
     df_wk_pert = df_wk.drop(["CHR", "SNP", "BETA", "SE", "Z_eqtl"], axis=1).melt(id_vars="GENE", var_name="name", value_name="value")
 
     threshold = df_wk_pert["value"].abs().quantile(1-top_signal)
@@ -389,7 +389,7 @@ def _process_raw(
     
     result = CleanData(
         beta=jnp.array(df_wk.BETA),
-        inv_se=jnp.diag(1 / df_wk.SE.values),
+        inv_se=(1 / df_wk.SE.values),
         eqtl=jnp.array(df_wk.Z_eqtl),
         perturb=jnp.array(df_wk.iloc[:,7:]),
         inv_ld=jnp.array(inv_ld_subset),
@@ -397,7 +397,7 @@ def _process_raw(
     )
     
     log.logger.info(
-        f"Successfully prepared {beta.shape[0]} perturbed genes."
+        f"Successfully prepared {df_wk.shape[0]} perturbed genes."
         + f" Start running Mr PEG on {len(ds_genes)} downstream genes."
     )
     
