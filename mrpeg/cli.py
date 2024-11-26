@@ -109,7 +109,7 @@ def run_peg(args):
                 "tissue": args.tissue,
                 "gene_name": clean_data.gene_names,
                 "n_perturb": clean_data.beta.shape[1],
-                # "n_perturb_sig": np.sum(np.abs(clean_data.perturb) > 1.96, axis=0),
+                "n_perturb_sig": np.sum(~np.isnan(clean_data.perturb), axis=0),
             }
         )
         df_final = pd.concat([df_result, df_infer], axis=1)
