@@ -455,19 +455,16 @@ class null_result(NamedTuple):
 
 def permute_non_nan_colwise(key, matrix):
     def permute_column(column, key):
-        nan_mask = jnp.isnan(column)  # Identify NaNs
-        non_nan_values = column[~nan_mask]  # Extract non-NaN values
-        permuted_values = random.permutation(key, non_nan_values)  # Permute non-NaN values
-        # Reconstruct the column by placing permuted values back into the original positions
-        result = jnp.where(nan_mask, jnp.nan, permuted_values)
-        return result
-
+        nan_mask = jnp.isnan(column) 
+        # Extract the positions to permute
+        permuted_values = random.permutation(key, column[~nan_mask])
+        column=column.at[~nan_mask].set(permuted_values)
+        return column
     # Generate random keys for each column
-    keys = random.split(key, matrix.shape[1])
-
-    # Apply the permutation column by column
-    permuted_matrix = vmap(permute_column, in_axes=(1, 0))(matrix, keys)
-    return permuted_matrix
+    for idx in range(matrix.shape[1]):
+        key, new_key = random.split(key, 2)
+        matrix = matrix.at[:,idx].set(permute_column(matrix[:,idx], new_key))
+    return matrix
 
 def _make_null(result: null_result, empty: Any):
     del empty
@@ -478,7 +475,7 @@ def _make_null(result: null_result, empty: Any):
     import pdb; pdb.set_trace()
     new_perturb = permute_non_nan_colwise(gamma_key, perturb)
     
-    X_perturb = eqtl * new_perturb
+    X = jnp.einsum("i,ij->ij", eqtl, new_perturb)
     mr_gamma = _mrld(gwas_beta, X_perturb, inv_dvd)
 
     carry = result._replace(
