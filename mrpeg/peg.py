@@ -453,7 +453,15 @@ class null_result(NamedTuple):
     inv_dvd: Array
     size: int
     rng_key: prng.PRNGKeyArray
-
+    @staticmethod
+    def create(gwas_beta, eqtl, perturb, inv_dvd, size, rng_key):
+        """
+        Factory method to enforce static size and create a NullResult instance.
+        """
+        # Enforce static size (raise an error if it changes or is not compatible)
+        assert isinstance(size, int), "Size must be an integer."
+        return null_result(gwas_beta, eqtl, perturb, inv_dvd, size, rng_key)
+    
 # def permute_non_nan_colwise(key, matrix):
 #     def permute_column(column, key):
 #         nan_mask = jnp.isnan(column) 
