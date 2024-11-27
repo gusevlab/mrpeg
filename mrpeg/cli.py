@@ -139,7 +139,7 @@ def run_peg(args):
         )
         df_final1 = pd.concat([df_result1, df_infer1], axis=1)
         df_final2 = pd.concat([df_result2, df_infer2], axis=1)
-        import pdb; pdb.set_trace()
+
         df_final = pd.concat([df_final1, df_final2], axis=0)
         log.logger.info("Saving results.")
         suffix = ".gz" if args.compress else ""
@@ -349,7 +349,7 @@ def build_peg_parser(subp):
 
     peg.add_argument(
         "--perm-number",
-        default=200,
+        default=500,
         type=int,
         help=(
             "Integer number of shared effects pre-specified.",
