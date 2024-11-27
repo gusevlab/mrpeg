@@ -540,10 +540,8 @@ def infer_peg1(
     log.logger.info(f"Starting permutation test with {perm_number} times.")
     null_dist = jnp.zeros((perm_number, n_d))
     for idx in range(perm_number):
-        new_perturb = perturb
         new_key, rng_key = random.split(rng_key, 2)
-        new_perturb = random.permutation(new_key, new_perturb)
-        import pdb; pdb.set_trace()
+        new_perturb = random.permutation(new_key, perturb)
         new_perturb = perturb.T.at[jnp.where(~jnp.isnan(perturb.T))].set(new_perturb.T[jnp.where(~jnp.isnan(new_perturb.T))]).T
         new_X = jnp.einsum("i,ij->ij", eqtl, new_perturb)
         new_gamma = _mrld1(beta, new_X, inv_dvd)
