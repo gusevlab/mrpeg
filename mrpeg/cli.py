@@ -119,16 +119,29 @@ def run_peg(args):
         )
         
         import pdb; pdb.set_trace()
-        df_result = pd.DataFrame(
+        df_result1 = pd.DataFrame(
             {
                 "trait": args.trait,
                 "tissue": args.tissue,
-                "gene_name": clean_data.gene_names,
-                "n_perturb": clean_data.beta.shape[1],
-                "n_perturb_sig": np.sum(~np.isnan(clean_data.perturb), axis=0),
+                "gene_name": clean_data1.gene_names,
+                "n_perturb": 1,
+                "n_perturb_sig": 1,
             }
         )
-        df_final = pd.concat([df_result, df_infer], axis=1)
+        
+        df_result2 = pd.DataFrame(
+            {
+                "trait": args.trait,
+                "tissue": args.tissue,
+                "gene_name": clean_data2.gene_names,
+                "n_perturb": 1,
+                "n_perturb_sig": 1,
+            }
+        )
+        df_final1 = pd.concat([df_result1, df_infer1], axis=1)
+        df_final2 = pd.concat([df_result2, df_infer2], axis=1)
+        import pdb; pdb.set_trace()
+        df_final = pd.concat([df_final1, df_final2], axis=0)
         log.logger.info("Saving results.")
         suffix = ".gz" if args.compress else ""
         df_final.to_csv(f"{args.output}.mrpeg.tsv{suffix}", sep="\t", index=False)
@@ -423,7 +436,7 @@ def build_peg_parser(subp):
     )
 
     peg.add_argument(
-        "--jax_precision",
+        "--jax-precision",
         default=64,
         type=int,
         choices=[32, 64],

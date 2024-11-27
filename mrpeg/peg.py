@@ -401,7 +401,8 @@ def _process_raw(
         f"Successfully prepared {df_wk.shape[0]} perturbed genes."
         + f" Start running Mr PEG on {len(ds_genes)} downstream genes."
     )
-    
+    filtered_long_df = df_wk_pert[df_wk_pert["value"].abs() >= threshold].groupby("name").filter(lambda x: len(x) >= 10)
+    import pdb; pdb.set_trace()
     result2 = CleanData(
         beta=jnp.array(df_wk_old.BETA),
         inv_se=(1 / df_wk_old.SE.values),
