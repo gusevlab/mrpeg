@@ -457,7 +457,7 @@ def _make_null(result: null_result, empty: Any):
 
     new_perturb = random.permutation(gamma_key, perturb, 0)
     X_perturb = jnp.einsum("i,ij->ij", eqtl, new_perturb)
-    mr_gamma, _ = _mrld2(gwas_beta, X_perturb, inv_dvd)
+    mr_gamma = _mrld2(gwas_beta, X_perturb, inv_dvd)
 
     carry = result._replace(
         rng_key=rng_key,
@@ -605,7 +605,7 @@ def infer_peg2(
     updated_diag = jnp.diagonal(inv_ld) * inv_se**2
     inv_dvd = inv_ld.at[jnp.arange(n_p), jnp.arange(n_p)].set(updated_diag)
     mr_gamma = _mrld2(beta, X, inv_dvd)
-    
+    log.logger.info(f"Starting permutation test with {perm_number} times.")
     init_null = null_result(
         gwas_beta=beta,
         eqtl=eqtl,
