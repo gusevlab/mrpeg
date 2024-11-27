@@ -373,7 +373,7 @@ def _process_raw(
     
     inv_ld_subset = inv_ld[df_wk["index"].values,:][:,df_wk["index"].values]
     
-    ds_genes = df_wk.columns[7:].tolist()
+    ds_genes1 = df_wk.columns[7:].tolist()
     
     result = CleanData(
         beta=jnp.array(df_wk.BETA),
@@ -381,21 +381,21 @@ def _process_raw(
         eqtl=jnp.array(df_wk.Z_eqtl),
         perturb=jnp.array(df_wk.iloc[:,7:]),
         inv_ld=jnp.array(inv_ld_subset),
-        gene_names=ds_genes,
+        gene_names=ds_genes1,
     )
     
     log.logger.info(
         f"Successfully prepared {df_wk.shape[0]} perturbed genes."
         + f" Start running Mr PEG on {len(ds_genes)} downstream genes."
     )
-    
+    ds_genes2 = df_wk_old.columns[7:].tolist()
     result2 = CleanData(
         beta=jnp.array(df_wk_old.BETA),
         inv_se=(1 / df_wk_old.SE.values),
         eqtl=jnp.array(df_wk_old.Z_eqtl),
         perturb=jnp.array(df_wk_old.iloc[:,7:]),
         inv_ld=jnp.array(inv_ld_subset),
-        gene_names=ds_genes,
+        gene_names=ds_genes2,
     )
     
     return result, result2
