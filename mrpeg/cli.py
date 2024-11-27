@@ -121,7 +121,7 @@ def run_peg(args):
         df_result1 = pd.DataFrame(
             {
                 "trait": args.trait,
-                "tissue": args.tissue,
+                "tissue": f"{args.tissue}.na",
                 "gene_name": clean_data1.gene_names,
                 "n_perturb": 1,
                 "n_perturb_sig": 1,
@@ -131,7 +131,7 @@ def run_peg(args):
         df_result2 = pd.DataFrame(
             {
                 "trait": args.trait,
-                "tissue": args.tissue,
+                "tissue": f"{args.tissue}.zero",
                 "gene_name": clean_data2.gene_names,
                 "n_perturb": 1,
                 "n_perturb_sig": 1,
