@@ -361,32 +361,19 @@ def _process_raw(
         f"{num_diff} genes are removed because no eQTLs in the reference data."
     )
     
-    df_wk_old = df_wk.copy()
     df_wk_pert = df_wk.drop(["CHR", "SNP", "BETA", "SE", "Z_eqtl"], axis=1).melt(id_vars="GENE", var_name="name", value_name="value")
 
     threshold = df_wk_pert["value"].abs().quantile(1-top_signal)
 
     filtered_long_df = df_wk_pert[df_wk_pert["value"].abs() >= threshold].groupby("name").filter(lambda x: len(x) >= 10).pivot(index="GENE", columns="name", values="value").reset_index()
 
+    df_wk_old = df_wk[["CHR", "SNP", "BETA", "SE", "Z_eqtl", "GENE"]].reset_index().merge(filtered_long_df.fillna(0), how="inner", on="GENE").copy()
+    
     df_wk = df_wk[["CHR", "SNP", "BETA", "SE", "Z_eqtl", "GENE"]].reset_index().merge(filtered_long_df, how="inner", on="GENE")
     
     inv_ld_subset = inv_ld[df_wk["index"].values,:][:,df_wk["index"].values]
     
     ds_genes = df_wk.columns[7:].tolist()
-    # if top_signal == 0:
-    #     top_signal = df_wk.shape[0]
-    #     perturb_subset = jnp.array(df_wk.iloc[:,6:])
-    #     beta_sbuset=jnp.tile(jnp.array(df_wk.BETA)[:, None], (1, perturb_subset.shape[1]))
-    #     se_subset = jnp.tile(jnp.array(df_wk.SE)[:, None], (1, perturb_subset.shape[1]))
-    #     eqtl_subset = jnp.tile(jnp.array(df_wk.Z_eqtl)[:, None], (1, perturb_subset.shape[1]))
-    #     inv_ld_subset = jnp.tile(inv_ld[None, :, :], (perturb_subset.shape[1], 1, 1))
-    # else:
-    #     top_signal_index = jnp.array([df_wk.iloc[:, i].abs().nlargest(top_signal).index for i in range(6, df_wk.shape[1])]).T
-    #     perturb_subset = jnp.take_along_axis(jnp.array(df_wk.iloc[:,6:]), top_signal_index, axis=0)
-    #     beta_subset = jnp.take(jnp.array(df_wk["BETA"]).flatten(), top_signal_index)
-    #     se_subset = jnp.take(jnp.array(df_wk["SE"]).flatten(), top_signal_index)
-    #     eqtl_subset = jnp.take(jnp.array(df_wk["Z_eqtl"]).flatten(), top_signal_index)
-    #     inv_ld_subset = jnp.array([inv_ld[jnp.array(indices),:][:,jnp.array(indices)] for indices in top_signal_index.T])
     
     result = CleanData(
         beta=jnp.array(df_wk.BETA),
@@ -401,18 +388,16 @@ def _process_raw(
         f"Successfully prepared {df_wk.shape[0]} perturbed genes."
         + f" Start running Mr PEG on {len(ds_genes)} downstream genes."
     )
-    filtered_long_df = df_wk_pert[df_wk_pert["value"].abs() >= threshold].groupby("name").filter(lambda x: len(x) >= 10)
-    import pdb; pdb.set_trace()
+    
     result2 = CleanData(
         beta=jnp.array(df_wk_old.BETA),
         inv_se=(1 / df_wk_old.SE.values),
         eqtl=jnp.array(df_wk_old.Z_eqtl),
         perturb=jnp.array(df_wk_old.iloc[:,7:]),
-        inv_ld=jnp.array(inv_ld),
+        inv_ld=jnp.array(inv_ld_subset),
         gene_names=ds_genes,
     )
     
-
     return result, result2
 
 
