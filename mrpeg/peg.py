@@ -11,7 +11,6 @@ from jax._src import prng
 from jax.numpy.linalg import inv
 from jax.typing import ArrayLike
 from scipy.linalg import block_diag
-from scipy.stats import t
 
 from . import log
 
@@ -20,7 +19,7 @@ with warnings.catch_warnings():
     from pandas_plink import read_plink
 
 from jax import random
-from jax import vmap
+
 __all__ = [
     "CleanData",
     "_parameter_check",
@@ -33,8 +32,7 @@ __all__ = [
     "null_result",
     "_make_null",
     "_get_p",
-    "infer_peg1",
-    "infer_peg2",
+    "infer_peg",
 ]
 
 
@@ -367,64 +365,36 @@ def _process_raw(
 
     filtered_long_df = df_wk_pert[df_wk_pert["value"].abs() >= threshold].groupby("name").filter(lambda x: len(x) >= 10).pivot(index="GENE", columns="name", values="value").reset_index()
 
-    df_wk_old = df_wk[["CHR", "SNP", "BETA", "SE", "Z_eqtl", "GENE"]].reset_index().merge(filtered_long_df.fillna(0), how="inner", on="GENE").copy()
-    
-    df_wk = df_wk[["CHR", "SNP", "BETA", "SE", "Z_eqtl", "GENE"]].reset_index().merge(filtered_long_df, how="inner", on="GENE")
-    
+    df_wk = df_wk[["CHR", "SNP", "BETA", "SE", "Z_eqtl", "GENE"]].reset_index().merge(filtered_long_df.fillna(0), how="inner", on="GENE").copy()
+        
     inv_ld_subset = inv_ld[df_wk["index"].values,:][:,df_wk["index"].values]
     
-    ds_genes1 = df_wk.columns[7:].tolist()
+    ds_genes = df_wk.columns[7:].tolist()
     
+    log.logger.info(
+        f"Successfully prepared {df_wk.shape[0]} perturbed genes."
+        + f" Start running Mr PEG on {len(ds_genes)} downstream genes."
+    )
+    import pdb; pdb.set_trace()
     result = CleanData(
         beta=jnp.array(df_wk.BETA),
         inv_se=(1 / df_wk.SE.values),
         eqtl=jnp.array(df_wk.Z_eqtl),
         perturb=jnp.array(df_wk.iloc[:,7:]),
         inv_ld=jnp.array(inv_ld_subset),
-        gene_names=ds_genes1,
+        gene_names=ds_genes
     )
     
-    log.logger.info(
-        f"Successfully prepared {df_wk.shape[0]} perturbed genes."
-        + f" Start running Mr PEG on {len(ds_genes1)} downstream genes."
-    )
-    ds_genes2 = df_wk_old.columns[7:].tolist()
-    result2 = CleanData(
-        beta=jnp.array(df_wk_old.BETA),
-        inv_se=(1 / df_wk_old.SE.values),
-        eqtl=jnp.array(df_wk_old.Z_eqtl),
-        perturb=jnp.array(df_wk_old.iloc[:,7:]),
-        inv_ld=jnp.array(inv_ld_subset),
-        gene_names=ds_genes2,
-    )
-    
-    return result, result2
+    return result
 
 
-def _mrld2(y, X, inv_dvd):
+def _mrld(y, X, inv_dvd):
     gamma_num = jnp.squeeze(jnp.einsum("ij,jk,km->im", X.T, inv_dvd, y[:, jnp.newaxis]))
     gamma_dem = jnp.einsum("ij,jk,ki->i", X.T, inv_dvd, X)
     mr_gamma = gamma_num / gamma_dem
 
     return mr_gamma
 
-
-def _mrld1(y, X, inv_dvd):
-    X_na = jnp.where(jnp.isnan(X), jnp.nan, 1)
-
-    num1 = jnp.nan_to_num(jnp.einsum("ij,jk->ijk", X.T, inv_dvd), nan=0)
-    new_num1 = jnp.sum(jnp.einsum("ijk,ik->ijk",num1, X_na.T), axis=1)
-    gamma_num = jnp.sum(jnp.nan_to_num(jnp.einsum("ik,km->ikm", new_num1, y[:,jnp.newaxis]), nan=0), axis=[1,2])
-    gamma_dem = jnp.sum(jnp.nan_to_num(jnp.einsum("ik,ki->ik", new_num1, X), nan=0), axis=[1])
-    mr_gamma = gamma_num / gamma_dem
-
-    # epi_hat = y[:, jnp.newaxis] - jnp.einsum("ij,j->ij", X, mr_gamma)
-    # df = y.shape[0] - 1
-    # sigma_sq_hat = (1 / df) * jnp.einsum("ij,jk,ki->i", epi_hat.T, inv_dvd, epi_hat)
-    # se = jnp.sqrt(sigma_sq_hat / gamma_dem)
-    # mr_z = mr_gamma / se
-
-    return mr_gamma
 
 class null_result(NamedTuple):
     gwas_beta: Array
@@ -443,7 +413,7 @@ def _make_null(result: null_result, empty: Any):
 
     new_perturb = random.permutation(gamma_key, perturb, 0)
     X_perturb = jnp.einsum("i,ij->ij", eqtl, new_perturb)
-    mr_gamma = _mrld2(gwas_beta, X_perturb, inv_dvd)
+    mr_gamma = _mrld(gwas_beta, X_perturb, inv_dvd)
 
     carry = result._replace(
         rng_key=rng_key,
@@ -458,7 +428,7 @@ def _get_p(mr, null):
     return stats_z, stats_p
 
 
-def infer_peg1(
+def infer_peg(
     beta: ArrayLike,
     inv_se: ArrayLike,
     eqtl: ArrayLike,
@@ -513,85 +483,16 @@ def infer_peg1(
     #     raise ValueError(
     #         "The dimension of GWAS, eQTL, perturb, and the inverse of LD do not match."
     #     )
-
+    
     rng_key = random.PRNGKey(seed)
     n_p, n_d = perturb.shape
     
     X = jnp.einsum("i,ij->ij", eqtl, perturb)
     updated_diag = jnp.diagonal(inv_ld) * inv_se**2
     inv_dvd = inv_ld.at[jnp.arange(n_p), jnp.arange(n_p)].set(updated_diag)
-    mr_gamma = _mrld1(beta, X, inv_dvd)
-    # mr_p = 2 * t.sf(jnp.abs(mr_z), beta.shape[0] - 1)
-
+    mr_gamma = _mrld(beta, X, inv_dvd)
     log.logger.info(f"Starting permutation test with {perm_number} times.")
-    null_dist = jnp.zeros((perm_number, n_d))
-    for idx in range(perm_number):
-        new_key, rng_key = random.split(rng_key, 2)
-        new_perturb = random.permutation(new_key, perturb)
-        new_perturb = perturb.T.at[jnp.where(~jnp.isnan(perturb.T))].set(new_perturb.T[jnp.where(~jnp.isnan(new_perturb.T))]).T
-        new_X = jnp.einsum("i,ij->ij", eqtl, new_perturb)
-        new_gamma = _mrld1(beta, new_X, inv_dvd)
-        null_dist = null_dist.at[idx,:].set(new_gamma)
     
-    mr_z_perm, _ = _get_p(mr_gamma, null_dist)
-
-    result = jnp.column_stack(
-        (
-            mr_gamma,
-            mr_z_perm,
-        )
-    )
-
-    return result
-
-def infer_peg2(
-    beta: ArrayLike,
-    inv_se: ArrayLike,
-    eqtl: ArrayLike,
-    perturb: ArrayLike,
-    inv_ld: ArrayLike,
-    perm_number: int = 500,
-    seed: int = 12345,
-) -> Array:
-    """The main inference function for running SuShiE.
-
-    Args:
-        beta: ArrayLike. GWAS effect sizes.
-        inv_se: ArrayLike. The diagonal matrix of the inverse of GWAS Standard error
-        eqtl: ArrayLike. eQTL Z scores.
-        perturb: ArrayLike. Perturbation effect size matrix.
-        inv_ld: ArrayLike. The inverse of the LD matrix.
-        perm_number: int = 500. The number of permutations.
-        seed: int = 12345,
-
-    Returns:
-        :py:obj:`SushieResult`: A SuShiE result object that contains prior (:py:obj:`Prior`),
-        posterior (:py:obj:`Posterior`), ``cs``, ``pip``, ``elbo``, and ``elbo_increase``.
-
-    """
-    if seed <= 0:
-        raise ValueError(
-            "The seed specified for randomization is invalid. Choose a positive integer."
-        )
-
-    if perm_number <= 0:
-        raise ValueError(
-            "The the permutation number is invalid. Choose a positive integer."
-        )
-
-    if perm_number < 100:
-        log.logger.warning(
-            "The number of permutation is low, and the estimate may be inaccurate."
-        )
-
-    rng_key = random.PRNGKey(seed)
-    n_p, n_d = perturb.shape
-    
-    X = jnp.einsum("i,ij->ij", eqtl, perturb)
-    updated_diag = jnp.diagonal(inv_ld) * inv_se**2
-    inv_dvd = inv_ld.at[jnp.arange(n_p), jnp.arange(n_p)].set(updated_diag)
-    mr_gamma = _mrld2(beta, X, inv_dvd)
-    log.logger.info(f"Starting permutation test with {perm_number} times.")
     init_null = null_result(
         gwas_beta=beta,
         eqtl=eqtl,

@@ -71,7 +71,7 @@ def run_peg(args):
 
         peg._parameter_check(args)
 
-        clean_data1, clean_data2 = peg._process_raw(
+        clean_data = peg._process_raw(
             args.gwas,
             args.eqtl,
             args.perturb,
@@ -81,66 +81,36 @@ def run_peg(args):
             args.keep_ambiguous,
             args.top_signal,
         )
-
-        infer_result1 = peg.infer_peg1(
-            clean_data1.beta,
-            clean_data1.inv_se,
-            clean_data1.eqtl,
-            clean_data1.perturb,
-            clean_data1.inv_ld,
+        
+        infer_result = peg.infer_peg(
+            clean_data.beta,
+            clean_data.inv_se,
+            clean_data.eqtl,
+            clean_data.perturb,
+            clean_data.inv_ld,
             args.perm_number,
             args.seed,
         )
         
-        infer_result2 = peg.infer_peg2(
-            clean_data2.beta,
-            clean_data2.inv_se,
-            clean_data2.eqtl,
-            clean_data2.perturb,
-            clean_data2.inv_ld,
-            args.perm_number,
-            args.seed,
-        )
-
-        df_infer1 = pd.DataFrame(
-            infer_result1,
+        df_infer = pd.DataFrame(
+            infer_result,
             columns=[
                 "mr_gamma",
                 "mr_z_perm",
             ],
         )
         
-        df_infer2 = pd.DataFrame(
-            infer_result2,
-            columns=[
-                "mr_gamma",
-                "mr_z_perm",
-            ],
-        )
-        
-        df_result1 = pd.DataFrame(
-            {
-                "trait": args.trait,
-                "tissue": f"{args.tissue}.na",
-                "gene_name": clean_data1.gene_names,
-                "n_perturb": 1,
-                "n_perturb_sig": 1,
-            }
-        )
-        
-        df_result2 = pd.DataFrame(
+        df_result = pd.DataFrame(
             {
                 "trait": args.trait,
                 "tissue": f"{args.tissue}.zero",
-                "gene_name": clean_data2.gene_names,
+                "gene_name": clean_data.gene_names,
                 "n_perturb": 1,
                 "n_perturb_sig": 1,
             }
         )
-        df_final1 = pd.concat([df_result1, df_infer1], axis=1)
-        df_final2 = pd.concat([df_result2, df_infer2], axis=1)
+        df_final = pd.concat([df_result, df_infer], axis=1)
 
-        df_final = pd.concat([df_final1, df_final2], axis=0)
         log.logger.info("Saving results.")
         suffix = ".gz" if args.compress else ""
         df_final.to_csv(f"{args.output}.mrpeg.tsv{suffix}", sep="\t", index=False)
