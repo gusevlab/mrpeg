@@ -55,6 +55,8 @@ class CleanData(NamedTuple):
     perturb: Array
     inv_ld: Array
     gene_names: List
+    num_perturb: Array
+    num_gwas_sig: Array
 
 
 def _parameter_check(
@@ -375,14 +377,20 @@ def _process_raw(
         f"Successfully prepared {df_wk.shape[0]} perturbed genes."
         + f" Start running Mr PEG on {len(ds_genes)} downstream genes."
     )
-    import pdb; pdb.set_trace()
+
+    gwas_hits = jnp.array((df_wk.BETA/df_wk.SE).abs() > 5.45) * 1
+    sig_perturb = jnp.array(df_wk.iloc[:,7:] != 0) * 1
+    gwas_hits_perturb = jnp.einsum("i,ik->k", gwas_hits, sig_perturb)
+    
     result = CleanData(
         beta=jnp.array(df_wk.BETA),
         inv_se=(1 / df_wk.SE.values),
         eqtl=jnp.array(df_wk.Z_eqtl),
         perturb=jnp.array(df_wk.iloc[:,7:]),
         inv_ld=jnp.array(inv_ld_subset),
-        gene_names=ds_genes
+        gene_names=ds_genes,
+        num_perturb=jnp.sum(sig_perturb,axis=0),
+        num_gwas_sig=gwas_hits_perturb
     )
     
     return result

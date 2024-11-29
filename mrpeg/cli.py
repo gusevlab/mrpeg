@@ -105,8 +105,8 @@ def run_peg(args):
                 "trait": args.trait,
                 "tissue": f"{args.tissue}.zero",
                 "gene_name": clean_data.gene_names,
-                "n_perturb": 1,
-                "n_perturb_sig": 1,
+                "n_perturb": clean_data.num_perturb,
+                "n_gwas_sig": clean_data.num_gwas_sig,
             }
         )
         df_final = pd.concat([df_result, df_infer], axis=1)
