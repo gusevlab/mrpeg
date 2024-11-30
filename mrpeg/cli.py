@@ -103,7 +103,7 @@ def run_peg(args):
         df_result = pd.DataFrame(
             {
                 "trait": args.trait,
-                "tissue": f"{args.tissue}.zero",
+                "tissue": f"{args.tissue}",
                 "gene_name": clean_data.gene_names,
                 "n_perturb": clean_data.num_perturb,
                 "n_gwas_sig": clean_data.num_gwas_sig,
