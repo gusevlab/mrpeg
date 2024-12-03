@@ -391,7 +391,7 @@ def _process_raw(
         inv_ld=jnp.array(inv_ld_subset),
         gene_names=ds_genes,
         num_perturb=jnp.sum(sig_perturb,axis=0),
-        num_gwas_sig=gwas_hits_perturb
+        num_gwas_sig=gwas_hits_perturb,
         metadata=df_wk
     )
     
