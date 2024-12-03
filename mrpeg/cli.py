@@ -110,7 +110,7 @@ def run_peg(args):
             }
         )
         df_final = pd.concat([df_result, df_infer], axis=1)
-
+        import pdb; pdb.set_trace()
         log.logger.info("Saving results.")
         suffix = ".gz" if args.compress else ""
         df_final.to_csv(f"{args.output}.mrpeg.tsv{suffix}", sep="\t", index=False)

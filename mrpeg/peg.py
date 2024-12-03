@@ -57,6 +57,7 @@ class CleanData(NamedTuple):
     gene_names: List
     num_perturb: Array
     num_gwas_sig: Array
+    metadata: pd.DataFrame
 
 
 def _parameter_check(
@@ -391,6 +392,7 @@ def _process_raw(
         gene_names=ds_genes,
         num_perturb=jnp.sum(sig_perturb,axis=0),
         num_gwas_sig=gwas_hits_perturb
+        metadata=df_wk
     )
     
     return result
