@@ -96,6 +96,8 @@ def run_peg(args):
             infer_result,
             columns=[
                 "mr_gamma",
+                "mr_gamma_se",
+                "mr_gamma_null_mean",
                 "mr_z_perm",
             ],
         )
