@@ -403,7 +403,12 @@ def _mrld(y, X, inv_dvd):
     gamma_dem = jnp.einsum("ij,jk,ki->i", X.T, inv_dvd, X)
     mr_gamma = gamma_num / gamma_dem
 
-    return mr_gamma
+    epi_hat = y[:, jnp.newaxis] - jnp.einsum("ij,j->ij", X, mr_gamma)
+    df = y.shape[0] - 1
+    sigma_sq_hat = (1 / df) * jnp.einsum("ij,jk,ki->i", epi_hat.T, inv_dvd, epi_hat)
+    se = jnp.sqrt(sigma_sq_hat / gamma_dem)
+    
+    return mr_gamma, se
 
 
 class null_result(NamedTuple):
@@ -423,19 +428,20 @@ def _make_null(result: null_result, empty: Any):
 
     new_perturb = random.permutation(gamma_key, perturb, 0)
     X_perturb = jnp.einsum("i,ij->ij", eqtl, new_perturb)
-    mr_gamma = _mrld(gwas_beta, X_perturb, inv_dvd)
+    gamma, _ = _mrld(gwas_beta, X_perturb, inv_dvd)
 
     carry = result._replace(
         rng_key=rng_key,
     )
 
-    return carry, mr_gamma
+    return carry, gamma
 
 
-def _get_p(mr, null):
-    stats_z = (mr - jnp.mean(null, axis=0)) / jnp.std(null, axis=0)
-    stats_p = 2 * stats.norm.sf(jnp.abs(stats_z))
-    return stats_z, stats_p
+def _get_p(gamma, null):
+    null_mean = jnp.mean(null, axis=0)
+    null_sd = jnp.std(null, axis=0)
+    stats_z = (gamma - null_mean) / null_sd
+    return stats_z, null_mean
 
 
 def infer_peg(
@@ -478,21 +484,17 @@ def infer_peg(
             "The number of permutation is low, and the estimate may be inaccurate."
         )
 
-    # dim_fail = (
-    #     (beta.shape[0] != inv_se.shape[0])
-    #     or (beta.shape[0] != eqtl.shape[0])
-    #     or (beta.shape[0] != perturb.shape[0])
-    #     or (beta.shape[0] != inv_ld.shape[0])
-    #     or (beta.shape[1] != inv_se.shape[1])
-    #     or (beta.shape[1] != eqtl.shape[1])
-    #     or (beta.shape[1] != perturb.shape[1])
-    #     or (beta.shape[1] != inv_ld.shape[1])
-    # )
+    dim_fail = (
+        (beta.shape[0] != inv_se.shape[0])
+        or (beta.shape[0] != eqtl.shape[0])
+        or (beta.shape[0] != perturb.shape[0])
+        or (beta.shape[0] != inv_ld.shape[0])
+    )
 
-    # if dim_fail:
-    #     raise ValueError(
-    #         "The dimension of GWAS, eQTL, perturb, and the inverse of LD do not match."
-    #     )
+    if dim_fail:
+        raise ValueError(
+            "The dimension of GWAS, eQTL, perturb, and the inverse of LD do not match."
+        )
     
     rng_key = random.PRNGKey(seed)
     n_p, n_d = perturb.shape
@@ -500,7 +502,7 @@ def infer_peg(
     X = jnp.einsum("i,ij->ij", eqtl, perturb)
     updated_diag = jnp.diagonal(inv_ld) * inv_se**2
     inv_dvd = inv_ld.at[jnp.arange(n_p), jnp.arange(n_p)].set(updated_diag)
-    mr_gamma = _mrld(beta, X, inv_dvd)
+    gamma, gamma_se = _mrld(beta, X, inv_dvd)
     log.logger.info(f"Starting permutation test with {perm_number} times.")
     
     init_null = null_result(
@@ -512,12 +514,14 @@ def infer_peg(
     )
 
     _, null_dist = lax.scan(_make_null, init_null, xs=None, length=perm_number)
-    mr_z_perm, _ = _get_p(mr_gamma, null_dist)
+    gamma_perm_z, gamma_null_mean, = _get_p(gamma, null_dist)
 
     result = jnp.column_stack(
         (
-            mr_gamma,
-            mr_z_perm,
+            gamma,
+            gamma_se,
+            gamma_null_mean,
+            gamma_perm_z,
         )
     )
 

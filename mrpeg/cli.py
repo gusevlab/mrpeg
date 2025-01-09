@@ -110,7 +110,7 @@ def run_peg(args):
             }
         )
         df_final = pd.concat([df_result, df_infer], axis=1)
-        import pdb; pdb.set_trace()
+
         log.logger.info("Saving results.")
         suffix = ".gz" if args.compress else ""
         df_final.to_csv(f"{args.output}.mrpeg.tsv{suffix}", sep="\t", index=False)
@@ -245,7 +245,6 @@ def run_signal(args):
 
 
 def build_peg_parser(subp):
-    # add imputation parser
     peg = subp.add_parser(
         "peg",
         description=("Run Mr PEG framework",),
@@ -255,19 +254,15 @@ def build_peg_parser(subp):
         "--gwas",
         type=str,
         required=True,
-        help=("GWAS data ",),
+        help=("Path to GWAS data file (tsv format, compressed or uncompressed)."),
     )
 
-    # main arguments
     peg.add_argument(
         "--eqtl",
         type=str,
         required=True,
         help=(
-            "Genotype data in plink 1 format. The plink triplet (bed, bim, and fam) should be",
-            " in the same folder with the same prefix.",
-            " Use 'space' to separate ancestries if more than two.",
-            " Keep the same ancestry order as phenotype's.",
+            "Path to eQTL data file (tsv format, compressed or uncompressed).",
         ),
     )
 
@@ -276,8 +271,9 @@ def build_peg_parser(subp):
         type=str,
         required=True,
         help=(
-            "Genotype data in vcf format. Use 'space' to separate ancestries if more than two.",
-            " Keep the same ancestry order as phenotype's.",
+            "Path to Perturb-seq data file (tsv format, compressed or uncompressed).",
+            "The rows need to be the upstream genes (Perturbed genes),",
+            " and columns are the downstream genes."
         ),
     )
 
@@ -285,7 +281,7 @@ def build_peg_parser(subp):
         "--ref-geno",
         default=None,
         type=str,
-        help=("'*' to split",),
+        help=("Path to reference data to compute the LD matrix. Use '*' as placeholder for chromsome number",),
     )
 
     peg.add_argument(
@@ -294,7 +290,8 @@ def build_peg_parser(subp):
         default=["CHR", "SNP", "A1", "A0", "BETA", "SE"],
         type=str,
         help=(
-            "Single file that contains subject ID across all ancestries that are used for fine-mapping."
+            "The column name in the GWAS files that indicate",
+            " chromosome, SNP ID, effect allele, non-effect allele, effect size, and standard error.",
         ),
     )
 
@@ -304,7 +301,8 @@ def build_peg_parser(subp):
         default=["CHR", "SNP", "A1", "A0", "Z", "GENE"],
         type=str,
         help=(
-            "Single file that contains subject ID across all ancestries that are used for fine-mapping."
+            "The column name in the eQTL files that indicate",
+            " chromosome, SNP ID, effect allele, non-effect allele, Z-score, and gene ID.",
         ),
     )
     
@@ -313,7 +311,7 @@ def build_peg_parser(subp):
         default=False,
         action="store_true",
         help=(
-            "Single file that contains subject ID across all ancestries that are used for fine-mapping."
+            "Indicator to keep ambiguous SNPs (i.e., A/T, T/A, C/G, G/C). Default is False (to remove)."
         ),
     )
 
@@ -322,8 +320,7 @@ def build_peg_parser(subp):
         default=500,
         type=int,
         help=(
-            "Integer number of shared effects pre-specified.",
-            " Default is 5. Larger number may cause slow inference.",
+            "The number of permutation to construct null distribution of effects. The default is 500.",
         ),
     )
     
@@ -332,8 +329,24 @@ def build_peg_parser(subp):
         default=0.01,
         type=float,
         help=(
-            "Integer number of shared effects pre-specified.",
-            " Default is 5. Larger number may cause slow inference.",
+            "The top percentage of Perturb-seq effect pairs used in the inference.",
+            " If the Perturb-seq effect matrix is 500 upstream genes by 200 downstream genes,",
+            " only the top 1% of the effect pairs (500*200*0.01) will be used in the inference,",
+            " and the rest entries will be zero."
+            " Default is 0.01 (1%). ",
+        ),
+    )
+    
+    peg.add_argument(
+        "--min_snps",
+        default=10,
+        type=int,
+        help=(
+            "The minimum number of SNPs as instrument variables in order to start the inference.",
+            " For example, after filtering for top 1% signal pairs in Perturb-seq data,",
+            " some downstream genes only have a few SNPs (e.g., <10),",
+            " and we will not perform inference on these genes.",
+            " Default is 10.",
         ),
     )
 
@@ -342,8 +355,7 @@ def build_peg_parser(subp):
         default=12345,
         type=int,
         help=(
-            "The seed for randomization. It can be used to cut data sets in cross validation. ",
-            " It can also be used to randomly select SNPs in the credible sets to calculate the purity."
+            "The seed for randomization for permutation test.",
             " Default is 12345. It has to be positive integer number.",
         ),
     )
@@ -352,7 +364,7 @@ def build_peg_parser(subp):
         "--trait",
         default="Trait",
         help=(
-            "Trait, tissue, gene name of the phenotype for better indexing in post-hoc analysis. Default is 'Trait'.",
+            "Trait, name of the phenotype for better indexing in post-hoc analysis. Default is 'Trait'.",
         ),
     )
     
@@ -360,7 +372,7 @@ def build_peg_parser(subp):
         "--tissue",
         default="Tissue",
         help=(
-            "Trait, tissue, gene name of the phenotype for better indexing in post-hoc analysis. Default is 'Trait'.",
+            "Tissue name of the Perturb-seq data for better indexing in post-hoc analysis. Default is 'Tissue'.",
         ),
     )
 
@@ -429,14 +441,14 @@ def build_closest_parser(subp):
     # add imputation parser
     closest = subp.add_parser(
         "closest",
-        description=("Get closest gene",),
+        description=("Find closest GWAS genes",),
     )
 
     closest.add_argument(
         "--gwas",
         type=str,
         required=True,
-        help=("Phenotype data. It has to be a tsv file that contains at least two",),
+        help=("Path to GWAS data file (tsv format, compressed or uncompressed)."),
     )
 
     # main arguments
@@ -445,7 +457,8 @@ def build_closest_parser(subp):
         type=str,
         required=True,
         help=(
-            "Genotype data in plink 1 format. The plink triplet (bed, bim, and fam) should be",
+            "Path to gene annotation file (tsv format, compressed or uncompressed).",
+            " For example, it can be a reference file downloaded from GENCODE.",
         ),
     )
 
@@ -455,16 +468,19 @@ def build_closest_parser(subp):
         default=["CHR", "SNP", "BP", "BETA", "SE"],
         type=str,
         help=(
-            "Single file that contains subject ID across all ancestries that are used for fine-mapping."
+            "The column name in the GWAS files that indicate",
+            " chromosome, SNP ID, effect allele, non-effect allele, effect size, and standard error.",
         ),
     )
+    
     closest.add_argument(
         "--ref_cols",
         nargs=4,
         default=["CHR", "P0", "P1", "ANNO"],
         type=str,
         help=(
-            "Single file that contains subject ID across all ancestries that are used for fine-mapping."
+            "The column name in the gene annotation file that indicate",
+            " chromosome, start position, end position, and gene name.",
         ),
     )
 
@@ -472,15 +488,19 @@ def build_closest_parser(subp):
         "--keep",
         default=None,
         type=str,
-        help=("keep file."),
+        help=(
+            "Path to a file that includes the genes users want to find closest GWAS genes from.",
+            " For example, users sometimes want to find closest GWAS genes for a list of genes,",
+            " instead of all genes in the reference file.",
+            ),
     )
-    # need to change this name to expand window
+
     closest.add_argument(
         "--window",
         default=1000,
         type=int,
         help=(
-            "Integer number of shared effects pre-specified.",
+            "Genomic window .",
             " Default is 5. Larger number may cause slow inference.",
         ),
     )
