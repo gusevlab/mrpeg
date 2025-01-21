@@ -95,10 +95,11 @@ def run_peg(args):
         df_infer = pd.DataFrame(
             infer_result,
             columns=[
-                "mr_gamma",
-                "mr_gamma_se",
-                "mr_gamma_null_mean",
-                "mr_z_perm",
+                "gamma",
+                "gamma_se",
+                "gamma_p",
+                "gamma_perm_mean",
+                "gamma_perm_z",
             ],
         )
         

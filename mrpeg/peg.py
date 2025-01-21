@@ -11,6 +11,7 @@ from jax._src import prng
 from jax.numpy.linalg import inv
 from jax.typing import ArrayLike
 from scipy.linalg import block_diag
+from scipy.stats import t
 
 from . import log
 
@@ -401,14 +402,14 @@ def _process_raw(
 def _mrld(y, X, inv_dvd):
     gamma_num = jnp.squeeze(jnp.einsum("ij,jk,km->im", X.T, inv_dvd, y[:, jnp.newaxis]))
     gamma_dem = jnp.einsum("ij,jk,ki->i", X.T, inv_dvd, X)
-    mr_gamma = gamma_num / gamma_dem
+    gamma = gamma_num / gamma_dem
 
-    epi_hat = y[:, jnp.newaxis] - jnp.einsum("ij,j->ij", X, mr_gamma)
+    epi_hat = y[:, jnp.newaxis] - jnp.einsum("ij,j->ij", X, gamma)
     df = y.shape[0] - 1
     sigma_sq_hat = (1 / df) * jnp.einsum("ij,jk,ki->i", epi_hat.T, inv_dvd, epi_hat)
     se = jnp.sqrt(sigma_sq_hat / gamma_dem)
     
-    return mr_gamma, se
+    return gamma, se
 
 
 class null_result(NamedTuple):
@@ -497,12 +498,14 @@ def infer_peg(
         )
     
     rng_key = random.PRNGKey(seed)
-    n_p, n_d = perturb.shape
     
     X = jnp.einsum("i,ij->ij", eqtl, perturb)
-    updated_diag = jnp.diagonal(inv_ld) * inv_se**2
-    inv_dvd = inv_ld.at[jnp.arange(n_p), jnp.arange(n_p)].set(updated_diag)
+    mat_inv_se = jnp.diag(1 / inv_se)
+    inv_dvd = mat_inv_se @ inv_ld @ mat_inv_se
+    
     gamma, gamma_se = _mrld(beta, X, inv_dvd)
+    gamma_p = 2 * t.sf(jnp.abs(gamma / gamma_se), beta.shape[0] - 1)
+    
     log.logger.info(f"Starting permutation test with {perm_number} times.")
     
     init_null = null_result(
@@ -514,13 +517,14 @@ def infer_peg(
     )
 
     _, null_dist = lax.scan(_make_null, init_null, xs=None, length=perm_number)
-    gamma_perm_z, gamma_null_mean, = _get_p(gamma, null_dist)
+    gamma_perm_z, gamma_perm_mean, = _get_p(gamma, null_dist)
 
     result = jnp.column_stack(
         (
             gamma,
             gamma_se,
-            gamma_null_mean,
+            gamma_p,
+            gamma_perm_mean,
             gamma_perm_z,
         )
     )
