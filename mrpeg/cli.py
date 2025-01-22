@@ -81,7 +81,7 @@ def run_peg(args):
             args.keep_ambiguous,
             args.top_signal,
         )
-        
+        import pdb; pdb.set_trace()
         infer_result = peg.infer_peg(
             clean_data.beta,
             clean_data.inv_se,

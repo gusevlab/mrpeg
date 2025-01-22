@@ -498,7 +498,6 @@ def infer_peg(
         )
     
     rng_key = random.PRNGKey(seed)
-    import pdb; pdb.set_trace()
     
     X = jnp.einsum("i,ij->ij", eqtl, perturb)
     mat_inv_se = jnp.diag(1 / inv_se)
