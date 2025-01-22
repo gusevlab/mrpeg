@@ -124,18 +124,18 @@ def run_peg(args):
             )
             df_final = pd.concat([df_result, df_infer], axis=1)
             res.append(df_final)
-            import pdb; pdb.set_trace()
+        import pdb; pdb.set_trace()
 
-            infer_result = peg.infer_peg(
-                clean_data.beta,
-                clean_data.inv_se,
-                clean_data.eqtl,
-                subset_perturb,
-                clean_data.inv_ld,
-                False,
-                args.perm_number,
-                args.seed,
-            )
+        infer_result = peg.infer_peg(
+            clean_data.beta,
+            clean_data.inv_se,
+            clean_data.eqtl,
+            subset_perturb,
+            clean_data.inv_ld,
+            False,
+            args.perm_number,
+            args.seed,
+        )
                  
         log.logger.info("Saving results.")
         suffix = ".gz" if args.compress else ""
