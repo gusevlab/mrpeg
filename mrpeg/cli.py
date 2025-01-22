@@ -93,6 +93,7 @@ def run_peg(args):
             subset_inv_se = clean_data.inv_se[row_indices]
             subset_eqtl = clean_data.eqtl[row_indices]
             subset_inv_ld = clean_data.inv_ld[:, row_indices][row_indices, :]
+            
             infer_result = peg.infer_peg(subset_beta,
                 subset_inv_se,
                 subset_eqtl,
@@ -124,6 +125,7 @@ def run_peg(args):
             )
             df_final = pd.concat([df_result, df_infer], axis=1)
             res.append(df_final)
+            
         import pdb; pdb.set_trace()
 
         infer_result = peg.infer_peg(
