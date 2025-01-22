@@ -451,6 +451,7 @@ def infer_peg(
     eqtl: ArrayLike,
     perturb: ArrayLike,
     inv_ld: ArrayLike,
+    if_perm: bool,
     perm_number: int = 500,
     seed: int = 12345,
 ) -> Array:
@@ -506,18 +507,21 @@ def infer_peg(
     gamma, gamma_se = _mrld(beta, X, inv_dvd)
     gamma_p = 2 * t.sf(jnp.abs(gamma / gamma_se), beta.shape[0] - 1)
     
-    log.logger.info(f"Starting permutation test with {perm_number} times.")
-    
-    init_null = null_result(
-        gwas_beta=beta,
-        eqtl=eqtl,
-        perturb=perturb,
-        inv_dvd=inv_dvd,
-        rng_key=rng_key,
-    )
+    # log.logger.info(f"Starting permutation test with {perm_number} times.")
+    if if_perm:
+        init_null = null_result(
+            gwas_beta=beta,
+            eqtl=eqtl,
+            perturb=perturb,
+            inv_dvd=inv_dvd,
+            rng_key=rng_key,
+        )
 
-    _, null_dist = lax.scan(_make_null, init_null, xs=None, length=perm_number)
-    gamma_perm_z, gamma_perm_mean, = _get_p(gamma, null_dist)
+        _, null_dist = lax.scan(_make_null, init_null, xs=None, length=perm_number)
+        gamma_perm_z, gamma_perm_mean, = _get_p(gamma, null_dist)
+    else:
+        gamma_perm_z = jnp.nan
+        gamma_perm_mean = jnp.nan
 
     result = jnp.column_stack(
         (

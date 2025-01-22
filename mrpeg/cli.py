@@ -83,26 +83,24 @@ def run_peg(args):
             args.top_signal,
         )
         
-        import pdb; pdb.set_trace()
-        
-        diff_perturb = jnp.unique(jnp.count_nonzero(clean_data.perturb, axis=0))
-        non_zero_counts = jnp.count_nonzero(clean_data.perturb, axis=0)
         res = []
-        for n_perturb in diff_perturb:
-            indices = jnp.where(non_zero_counts == n_perturb)[0]
-            subset_perturb = clean_data.perturb[:, indices]
-            subset_genes = pd.DataFrame(clean_data.gene_names).iloc[indices,][0].values
-            
-            infer_result = peg.infer_peg(
-                clean_data.beta,
-                clean_data.inv_se,
-                clean_data.eqtl,
+        for n_perturb in range(clean_data.perturb.shape[1]):
+            tmp_perturb = clean_data.perturb[:, n_perturb][:, jnp.newaxis]
+            row_indices = jnp.where(tmp_perturb != 0)[0]
+            subset_perturb = tmp_perturb[row_indices]
+            subset_beta = clean_data.beta[row_indices]
+            subset_inv_se = clean_data.inv_se[row_indices]
+            subset_eqtl = clean_data.eqtl[row_indices]
+            subset_inv_ld = clean_data.inv_ld[:, row_indices][row_indices, :]
+            infer_result = peg.infer_peg(subset_beta,
+                subset_inv_se,
+                subset_eqtl,
                 subset_perturb,
-                clean_data.inv_ld,
+                subset_inv_ld,
+                False,
                 args.perm_number,
-                args.seed,
-            )
-        
+                args.seed)
+
             df_infer = pd.DataFrame(
                 infer_result,
                 columns=[
@@ -118,14 +116,26 @@ def run_peg(args):
                 {
                     "trait": args.trait,
                     "tissue": f"{args.tissue}",
-                    "gene_name": subset_genes,
-                    "n_perturb": clean_data.num_perturb[indices],
-                    "n_gwas_sig": clean_data.num_gwas_sig[indices],
+                    "gene_name": clean_data.gene_name[n_perturb],
+                    "n_perturb": clean_data.num_perturb[n_perturb],
+                    "n_gwas_sig": clean_data.num_gwas_sig[n_perturb],
                 }
             )
             df_final = pd.concat([df_result, df_infer], axis=1)
+            res.append(df_final)
             import pdb; pdb.set_trace()
 
+            infer_result = peg.infer_peg(
+                clean_data.beta,
+                clean_data.inv_se,
+                clean_data.eqtl,
+                subset_perturb,
+                clean_data.inv_ld,
+                False,
+                args.perm_number,
+                args.seed,
+            )
+                 
         log.logger.info("Saving results.")
         suffix = ".gz" if args.compress else ""
         df_final.to_csv(f"{args.output}.mrpeg.tsv{suffix}", sep="\t", index=False)
