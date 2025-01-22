@@ -85,6 +85,7 @@ def run_peg(args):
         
         res = []
         for n_perturb in range(clean_data.perturb.shape[1]):
+            print(n_perturb)
             tmp_perturb = clean_data.perturb[:, n_perturb][:, jnp.newaxis]
             row_indices = jnp.where(tmp_perturb != 0)[0]
             subset_perturb = tmp_perturb[row_indices]
@@ -116,7 +117,7 @@ def run_peg(args):
                 {
                     "trait": args.trait,
                     "tissue": f"{args.tissue}",
-                    "gene_name": clean_data.gene_name[n_perturb],
+                    "gene_name": clean_data.gene_names[n_perturb],
                     "n_perturb": clean_data.num_perturb[n_perturb],
                     "n_gwas_sig": clean_data.num_gwas_sig[n_perturb],
                 }
