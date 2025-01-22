@@ -367,7 +367,7 @@ def _process_raw(
 
     threshold = df_wk_pert["value"].abs().quantile(1-top_signal)
 
-    filtered_long_df = df_wk_pert[df_wk_pert["value"].abs() >= threshold].groupby("name").filter(lambda x: len(x) >= 1).pivot(index="GENE", columns="name", values="value").reset_index()
+    filtered_long_df = df_wk_pert[df_wk_pert["value"].abs() >= threshold].groupby("name").filter(lambda x: len(x) > 1).pivot(index="GENE", columns="name", values="value").reset_index()
 
     df_wk = df_wk[["CHR", "SNP", "BETA", "SE", "Z_eqtl", "GENE"]].reset_index().merge(filtered_long_df.fillna(0), how="inner", on="GENE").copy()
         
