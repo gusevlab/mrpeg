@@ -116,10 +116,10 @@ def run_peg(args):
             df_result = pd.DataFrame(
                 {
                     "trait": args.trait,
-                    "tissue": f"{args.tissue}",
-                    "gene_name": clean_data.gene_names[n_perturb],
-                    "n_perturb": clean_data.num_perturb[n_perturb],
-                    "n_gwas_sig": clean_data.num_gwas_sig[n_perturb],
+                    "tissue": args.tissue,
+                    "gene_name": [clean_data.gene_names[n_perturb]],
+                    "n_perturb": [clean_data.num_perturb[n_perturb]],
+                    "n_gwas_sig": [clean_data.num_gwas_sig[n_perturb]],
                 }
             )
             df_final = pd.concat([df_result, df_infer], axis=1)
