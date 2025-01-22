@@ -11,6 +11,7 @@ from importlib import metadata
 
 import numpy as np
 import pandas as pd
+import jax.numpy as jnp
 
 with warnings.catch_warnings():
     warnings.simplefilter("ignore")
@@ -81,38 +82,49 @@ def run_peg(args):
             args.keep_ambiguous,
             args.top_signal,
         )
+        
         import pdb; pdb.set_trace()
-        infer_result = peg.infer_peg(
-            clean_data.beta,
-            clean_data.inv_se,
-            clean_data.eqtl,
-            clean_data.perturb,
-            clean_data.inv_ld,
-            args.perm_number,
-            args.seed,
-        )
         
-        df_infer = pd.DataFrame(
-            infer_result,
-            columns=[
-                "gamma",
-                "gamma_se",
-                "gamma_p",
-                "gamma_perm_mean",
-                "gamma_perm_z",
-            ],
-        )
+        diff_perturb = jnp.unique(jnp.count_nonzero(clean_data.perturb, axis=0))
+        non_zero_counts = jnp.count_nonzero(clean_data.perturb, axis=0)
+        res = []
+        for n_perturb in diff_perturb:
+            indices = jnp.where(non_zero_counts == n_perturb)[0]
+            subset_perturb = clean_data.perturb[:, indices]
+            subset_genes = pd.DataFrame(clean_data.gene_names).iloc[indices,][0].values
+            
+            infer_result = peg.infer_peg(
+                clean_data.beta,
+                clean_data.inv_se,
+                clean_data.eqtl,
+                subset_perturb,
+                clean_data.inv_ld,
+                args.perm_number,
+                args.seed,
+            )
         
-        df_result = pd.DataFrame(
-            {
-                "trait": args.trait,
-                "tissue": f"{args.tissue}",
-                "gene_name": clean_data.gene_names,
-                "n_perturb": clean_data.num_perturb,
-                "n_gwas_sig": clean_data.num_gwas_sig,
-            }
-        )
-        df_final = pd.concat([df_result, df_infer], axis=1)
+            df_infer = pd.DataFrame(
+                infer_result,
+                columns=[
+                    "gamma",
+                    "gamma_se",
+                    "gamma_p",
+                    "gamma_perm_mean",
+                    "gamma_perm_z",
+                ],
+            )
+        
+            df_result = pd.DataFrame(
+                {
+                    "trait": args.trait,
+                    "tissue": f"{args.tissue}",
+                    "gene_name": subset_genes,
+                    "n_perturb": clean_data.num_perturb[indices],
+                    "n_gwas_sig": clean_data.num_gwas_sig[indices],
+                }
+            )
+            df_final = pd.concat([df_result, df_infer], axis=1)
+            import pdb; pdb.set_trace()
 
         log.logger.info("Saving results.")
         suffix = ".gz" if args.compress else ""
