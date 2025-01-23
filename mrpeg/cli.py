@@ -11,7 +11,6 @@ from importlib import metadata
 
 import numpy as np
 import pandas as pd
-import jax.numpy as jnp
 
 with warnings.catch_warnings():
     warnings.simplefilter("ignore")
@@ -83,65 +82,41 @@ def run_peg(args):
             args.top_signal,
         )
         
-        res = []
-        for n_perturb in range(clean_data.perturb.shape[1]):
-            print(n_perturb)
-            tmp_perturb = clean_data.perturb[:, n_perturb][:, jnp.newaxis]
-            row_indices = jnp.where(tmp_perturb != 0)[0]
-            subset_perturb = tmp_perturb[row_indices]
-            subset_beta = clean_data.beta[row_indices]
-            subset_inv_se = clean_data.inv_se[row_indices]
-            subset_eqtl = clean_data.eqtl[row_indices]
-            subset_inv_ld = clean_data.inv_ld[:, row_indices][row_indices, :]
-            
-            infer_result = peg.infer_peg(subset_beta,
-                subset_inv_se,
-                subset_eqtl,
-                subset_perturb,
-                subset_inv_ld,
-                False,
-                args.perm_number,
-                args.seed)
-
-            df_infer = pd.DataFrame(
-                infer_result,
-                columns=[
-                    "gamma",
-                    "gamma_se",
-                    "gamma_p",
-                    "gamma_perm_mean",
-                    "gamma_perm_z",
-                ],
-            )
+        infer_result = peg.infer_peg(
+            clean_data.beta,
+            clean_data.inv_se,
+            clean_data.eqtl,
+            clean_data.perturb,
+            clean_data.inv_ld,
+            args.perm_number,
+            args.seed,
+        )
         
-            df_result = pd.DataFrame(
-                {
-                    "trait": args.trait,
-                    "tissue": args.tissue,
-                    "gene_name": [clean_data.gene_names[n_perturb]],
-                    "n_perturb": [clean_data.num_perturb[n_perturb]],
-                    "n_gwas_sig": [clean_data.num_gwas_sig[n_perturb]],
-                }
-            )
-            df_final = pd.concat([df_result, df_infer], axis=1)
-            res.append(df_final)
-            
-        # import pdb; pdb.set_trace()
-
-        # infer_result = peg.infer_peg(
-        #     clean_data.beta,
-        #     clean_data.inv_se,
-        #     clean_data.eqtl,
-        #     subset_perturb,
-        #     clean_data.inv_ld,
-        #     False,
-        #     args.perm_number,
-        #     args.seed,
-        # )
+        df_infer = pd.DataFrame(
+            infer_result,
+            columns=[
+                "gamma",
+                "gamma_se",
+                "gamma_p",
+                "gamma_perm_mean",
+                "gamma_perm_z",
+            ],
+        )
         
+        df_result = pd.DataFrame(
+            {
+                "trait": args.trait,
+                "tissue": f"{args.tissue}",
+                "gene_name": clean_data.gene_names,
+                "n_perturb": clean_data.num_perturb,
+                "n_gwas_sig": clean_data.num_gwas_sig,
+            }
+        )
+        df_final = pd.concat([df_result, df_infer], axis=1)
+
         log.logger.info("Saving results.")
         suffix = ".gz" if args.compress else ""
-        pd.concat(res).to_csv(f"{args.output}.mrpeg.tsv{suffix}", sep="\t", index=False)
+        df_final.to_csv(f"{args.output}.mrpeg.tsv{suffix}", sep="\t", index=False)
 
     except Exception as err:
         import traceback

@@ -367,7 +367,7 @@ def _process_raw(
 
     threshold = df_wk_pert["value"].abs().quantile(1-top_signal)
 
-    filtered_long_df = df_wk_pert[df_wk_pert["value"].abs() >= threshold].groupby("name").filter(lambda x: len(x) > 1).pivot(index="GENE", columns="name", values="value").reset_index()
+    filtered_long_df = df_wk_pert[df_wk_pert["value"].abs() >= threshold].groupby("name").filter(lambda x: len(x) >= 1).pivot(index="GENE", columns="name", values="value").reset_index()
 
     df_wk = df_wk[["CHR", "SNP", "BETA", "SE", "Z_eqtl", "GENE"]].reset_index().merge(filtered_long_df.fillna(0), how="inner", on="GENE").copy()
         
@@ -451,7 +451,6 @@ def infer_peg(
     eqtl: ArrayLike,
     perturb: ArrayLike,
     inv_ld: ArrayLike,
-    if_perm: bool,
     perm_number: int = 500,
     seed: int = 12345,
 ) -> Array:
@@ -507,21 +506,18 @@ def infer_peg(
     gamma, gamma_se = _mrld(beta, X, inv_dvd)
     gamma_p = 2 * t.sf(jnp.abs(gamma / gamma_se), beta.shape[0] - 1)
     
-    # log.logger.info(f"Starting permutation test with {perm_number} times.")
-    if if_perm:
-        init_null = null_result(
-            gwas_beta=beta,
-            eqtl=eqtl,
-            perturb=perturb,
-            inv_dvd=inv_dvd,
-            rng_key=rng_key,
-        )
+    log.logger.info(f"Starting permutation test with {perm_number} times.")
+    
+    init_null = null_result(
+        gwas_beta=beta,
+        eqtl=eqtl,
+        perturb=perturb,
+        inv_dvd=inv_dvd,
+        rng_key=rng_key,
+    )
 
-        _, null_dist = lax.scan(_make_null, init_null, xs=None, length=perm_number)
-        gamma_perm_z, gamma_perm_mean, = _get_p(gamma, null_dist)
-    else:
-        gamma_perm_z = jnp.nan
-        gamma_perm_mean = jnp.nan
+    _, null_dist = lax.scan(_make_null, init_null, xs=None, length=perm_number)
+    gamma_perm_z, gamma_perm_mean, = _get_p(gamma, null_dist)
 
     result = jnp.column_stack(
         (
@@ -534,4 +530,3 @@ def infer_peg(
     )
 
     return result
-
