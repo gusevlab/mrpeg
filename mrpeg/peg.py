@@ -256,7 +256,7 @@ def _process_raw(
         raise ValueError("Ref data does not contain separator '*'.")
 
     keep_snps = []
-    inv_ld = []
+    ld = []
 
     log.logger.info("Matching SNPs in the reference genotypes.")
 
@@ -352,10 +352,10 @@ def _process_raw(
         X -= jnp.mean(X, axis=0)
         X /= jnp.std(X, axis=0)
         tmp_ld = X.T @ X / X.shape[0]
-        inv_ld.append(inv(tmp_ld + 1e-3 * jnp.eye(X.shape[1])))
+        ld.append(tmp_ld + 1e-3 * jnp.eye(X.shape[1]))
         keep_snps.append(df_snp[["CHR", "SNP", "BETA", "SE", "Z_eqtl", "GENE"]])
 
-    inv_ld = block_diag(*inv_ld)
+    ld = block_diag(*ld)
 
     df_wk = pd.concat(keep_snps).merge(df_perturb, how="left", on="GENE").reset_index(drop=True)
     num_diff = num_shared - df_wk.shape[0]
@@ -371,7 +371,7 @@ def _process_raw(
 
     df_wk = df_wk[["CHR", "SNP", "BETA", "SE", "Z_eqtl", "GENE"]].reset_index().merge(filtered_long_df.fillna(0), how="inner", on="GENE").copy()
         
-    inv_ld_subset = inv_ld[df_wk["index"].values,:][:,df_wk["index"].values]
+    ld_subset = ld[df_wk["index"].values,:][:,df_wk["index"].values]
     
     ds_genes = df_wk.columns[7:].tolist()
     
@@ -389,7 +389,7 @@ def _process_raw(
         inv_se=(1 / df_wk.SE.values),
         eqtl=jnp.array(df_wk.Z_eqtl),
         perturb=jnp.array(df_wk.iloc[:,7:]),
-        inv_ld=jnp.array(inv_ld_subset),
+        inv_ld=jnp.array(inv(ld_subset)),
         gene_names=ds_genes,
         num_perturb=jnp.sum(sig_perturb,axis=0),
         num_gwas_sig=gwas_hits_perturb,
