@@ -331,6 +331,7 @@ def _process_raw(
         
         # we have cases that same SNPs are the top eQTL for multiple genes
         # we make SNP only available to one gene
+        import pdb; pdb.set_trace()
         df_snp = (
             df_snp.groupby("GENE")
             .apply(lambda x: x.assign(abs_B=x["Z_eqtl"].abs()).nlargest(5, "abs_B"))
