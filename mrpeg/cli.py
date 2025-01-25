@@ -85,7 +85,7 @@ def run_peg(args):
         
         infer_result = peg.infer_peg(
             clean_data.beta,
-            clean_data.inv_se,
+            clean_data.se,
             clean_data.eqtl,
             clean_data.perturb,
             clean_data.inv_ld,
