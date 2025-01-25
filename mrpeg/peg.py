@@ -51,7 +51,7 @@ class CleanData(NamedTuple):
     """
 
     beta: Array
-    inv_se: Array
+    se: Array
     eqtl: Array
     perturb: Array
     inv_ld: Array
@@ -331,22 +331,9 @@ def _process_raw(
         
         # we have cases that same SNPs are the top eQTL for multiple genes
         # we make SNP only available to one gene
-        import pdb; pdb.set_trace()
-        df_snp = (
-            df_snp.groupby("GENE")
-            .apply(lambda x: x.assign(abs_B=x["Z_eqtl"].abs()).nlargest(5, "abs_B"))
-            .reset_index(drop=True)
-        )
-
-        df_snp = df_snp.sort_values(
-            by="Z_eqtl", key=lambda x: abs(x), ascending=False
-        ).drop_duplicates(subset="SNP")
-
-        df_snp = (
-            df_snp.groupby("GENE")
-            .apply(lambda x: x.loc[abs(x["Z_eqtl"]).idxmax()])
-            .reset_index(drop=True)
-        )
+        df_snp = df_snp.groupby("SNP").apply(lambda x: x.loc[abs(x["Z_eqtl"]).idxmax()]).reset_index(drop=True)
+        
+        df_snp = df_snp.groupby("GENE").apply(lambda x: x.loc[abs(x["Z_eqtl"]).idxmax()]).reset_index(drop=True)
 
         X = bed.compute().T[:, df_snp.i]
         X -= jnp.mean(X, axis=0)
@@ -354,6 +341,7 @@ def _process_raw(
         tmp_ld = X.T @ X / X.shape[0]
         ld.append(tmp_ld + 1e-3 * jnp.eye(X.shape[1]))
         keep_snps.append(df_snp[["CHR", "SNP", "BETA", "SE", "Z_eqtl", "GENE"]])
+        
 
     ld = block_diag(*ld)
 
@@ -386,7 +374,7 @@ def _process_raw(
     
     result = CleanData(
         beta=jnp.array(df_wk.BETA),
-        inv_se=(1 / df_wk.SE.values),
+        se=df_wk.SE.values,
         eqtl=jnp.array(df_wk.Z_eqtl),
         perturb=jnp.array(df_wk.iloc[:,7:]),
         inv_ld=jnp.array(inv(ld_subset)),
@@ -447,7 +435,7 @@ def _get_p(gamma, null):
 
 def infer_peg(
     beta: ArrayLike,
-    inv_se: ArrayLike,
+    se: ArrayLike,
     eqtl: ArrayLike,
     perturb: ArrayLike,
     inv_ld: ArrayLike,
@@ -458,7 +446,7 @@ def infer_peg(
 
     Args:
         beta: ArrayLike. GWAS effect sizes.
-        inv_se: ArrayLike. The diagonal matrix of the inverse of GWAS Standard error
+        se: ArrayLike. The vector of the inverse of GWAS Standard error
         eqtl: ArrayLike. eQTL Z scores.
         perturb: ArrayLike. Perturbation effect size matrix.
         inv_ld: ArrayLike. The inverse of the LD matrix.
@@ -486,7 +474,7 @@ def infer_peg(
         )
 
     dim_fail = (
-        (beta.shape[0] != inv_se.shape[0])
+        (beta.shape[0] != se.shape[0])
         or (beta.shape[0] != eqtl.shape[0])
         or (beta.shape[0] != perturb.shape[0])
         or (beta.shape[0] != inv_ld.shape[0])
@@ -500,7 +488,7 @@ def infer_peg(
     rng_key = random.PRNGKey(seed)
     
     X = jnp.einsum("i,ij->ij", eqtl, perturb)
-    mat_inv_se = jnp.diag(1 / inv_se)
+    mat_inv_se = jnp.diag(1 / se)
     inv_dvd = mat_inv_se @ inv_ld @ mat_inv_se
     
     gamma, gamma_se = _mrld(beta, X, inv_dvd)
