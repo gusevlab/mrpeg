@@ -217,6 +217,7 @@ def _process_raw(
     ref_geno: str,
     keep_ambiguous: bool,
     top_signal: int,
+    mr_ld: bool,
 ) -> CleanData:
     # read in GWAS data
     df_gwas = _prepare_gwas(gwas, gwas_cols, keep_ambiguous)
@@ -329,9 +330,7 @@ def _process_raw(
             log.logger.debug(f"Flip {len(flip_idx)} SNPs between reference and eQTL data on chromosome {chrs[idx]}.")
         
         # we have cases that same SNPs are the top eQTL for multiple genes
-        # to make sure we contain as many genes as possible,
-        # we select top 5 eQTLs for each gene, and then remove the duplicates
-        # and then pick the top eQTLs
+        # we make SNP only available to one gene
         df_snp = (
             df_snp.groupby("GENE")
             .apply(lambda x: x.assign(abs_B=x["Z_eqtl"].abs()).nlargest(5, "abs_B"))

@@ -80,6 +80,7 @@ def run_peg(args):
             args.ref_geno,
             args.keep_ambiguous,
             args.top_signal,
+            args.mr_ld
         )
         
         infer_result = peg.infer_peg(
@@ -306,6 +307,15 @@ def build_peg_parser(subp):
         help=(
             "The column name in the eQTL files that indicate",
             " chromosome, SNP ID, effect allele, non-effect allele, Z-score, and gene ID.",
+        ),
+    )
+    
+    peg.add_argument(
+        "--mr-ld",
+        default=False,
+        action="store_true",
+        help=(
+            "Indicator to perform LD-adjusted version of mendelian randomization."
         ),
     )
     
