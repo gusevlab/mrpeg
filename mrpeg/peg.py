@@ -160,7 +160,7 @@ def _prepare_eqtl(eqtl: str, eqtl_cols: List) -> pd.DataFrame:
     return df_eqtl
 
 
-def _prepare_perturb(perturb: str, top_signal: int) -> Tuple[pd.DataFrame, List]:
+def _prepare_perturb(perturb: str, top_signal: float) -> Tuple[pd.DataFrame, List]:
     df_perturb = (
         pd.read_csv(perturb, sep="\t")
         .replace([jnp.inf, -jnp.inf], jnp.nan, inplace=False)
@@ -175,6 +175,11 @@ def _prepare_perturb(perturb: str, top_signal: int) -> Tuple[pd.DataFrame, List]
     df_perturb = df_perturb.replace(jnp.nan, 0)
     ds_genes = df_perturb.columns[1 : df_perturb.shape[1]].tolist()
 
+    import pdb; pdb.set_trace()
+    df_wk_pert = df_wk.drop(["CHR", "SNP", "BETA", "SE", "Z_eqtl"], axis=1).melt(id_vars="GENE", var_name="name", value_name="value")
+
+    threshold = df_wk_pert["value"].abs().quantile(1-top_signal)
+    
     if top_signal == 0:
         log.logger.debug("Inference will use all perturbed genes.")
     else:
@@ -235,7 +240,9 @@ def _process_raw(
     )
     num_shared = len(df_wk.GENE.unique())
     chrs = df_wk["CHR"].unique()
-
+    
+    import pdb; pdb.set_trace()
+    
     if num_shared <= 2:
         raise ValueError(
             f"Only {num_shared} shared genes between eQTL and perturb data. Check your input."
