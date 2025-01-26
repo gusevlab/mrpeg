@@ -218,9 +218,21 @@ def prune_perturb(df_snp, df_perturb, df_ld):
     df_snp = df_snp.reset_index(drop=False).sort_values(by="perturb", key=abs, ascending=False).reset_index(drop=True)
     df_backup = df_snp.copy()
     snp_delete = []
-    for row in df_snp.iterrows():
+    snp_df_keep = []
+    for idx in range(df_snp.shape[0]):
+        focus_snp = df_snp[df_snp.index == idx]
+        
+        if focus_snp.SNP.isin(snp_delete).values:
+            continue
+        
+        other_snp = df_snp[df_snp.index != idx]
+        focus_BP = focus_snp["BP"].values[0]
+        nearby_snps = other_snp[(other_snp["BP"] >= (focus_BP - 5e5)) & (other_snp["BP"] <= (focus_BP + 5e5))]
+        if nearby_snps.shape[0] == 0:
+            snp_df_keep.append(focus_snp)
+            continue
         import pdb; pdb.set_trace()
-    
+        
     return res1, res2, res3
 
 def _process_raw(
@@ -356,7 +368,6 @@ def _process_raw(
         X /= jnp.std(X, axis=0)
         tmp_ld = X.T @ X / X.shape[0]
         
-        import pdb; pdb.set_trace()
         tmp_pert = df_snp[["GENE"]].merge(df_perturb, how="left", on="GENE").drop(["GENE"], axis=1)
         
         res1 = []
