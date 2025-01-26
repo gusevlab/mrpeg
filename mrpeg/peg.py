@@ -272,7 +272,7 @@ def _process_raw(
         bim.columns = ["CHR", "SNP", "CM", "BP", "A0_ref", "A1_ref", "i"]
 
         bim.CHR = bim.CHR.astype(int)
-        df_snp = df_wk.merge(bim, how="inner", on=["CHR", "SNP"]).reset_index(drop=True)
+        df_snp = df_wk.merge(bim, how="inner", on=["CHR", "SNP"]).merge(df_gwas, how="inner", on=["CHR", "SNP"]).reset_index(drop=True)
         
         if df_snp.shape[0] == 0:
             log.logger.debug(
