@@ -213,6 +213,11 @@ def _allele_check(
 
     return correct_idx, flipped_idx, wrong_idx
 
+def prune_perturb(df_snp, df_perturb, df_ld):
+    import pdb; pdb.set_trace()
+    
+    return res1, res2, res3
+
 def _process_raw(
     gwas: str,
     eqtl: str,
@@ -345,7 +350,20 @@ def _process_raw(
         X -= jnp.mean(X, axis=0)
         X /= jnp.std(X, axis=0)
         tmp_ld = X.T @ X / X.shape[0]
+        
         import pdb; pdb.set_trace()
+        tmp_pert = df_snp[["GENE"]].merge(df_perturb, how="left", on="GENE").drop(["GENE"], axis=1)
+        
+        res1 = []
+        res2 = []
+        res3 = []
+        
+        for col in tmp_pert.columns:
+            arr1, arr2, arr3 = prune_perturb(df_snp, tmp_pert[col], tmp_ld)
+            res1.append(arr1)
+            res2.append(arr2)
+            res3.append(arr3)
+        
         ld.append(tmp_ld + 1e-3 * jnp.eye(X.shape[1]))
         keep_snps.append(df_snp[["CHR", "SNP", "BETA", "SE", "Z_eqtl", "GENE"]])
         
