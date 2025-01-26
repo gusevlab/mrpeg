@@ -178,7 +178,7 @@ def _prepare_perturb(perturb: str, top_signal: float) -> Tuple[pd.DataFrame, Lis
     # remove duplicated perturbed genes
     df_perturb = df_perturb.drop_duplicates(subset="GENE", keep="first").replace(jnp.nan, 0)
     
-    
+    # make it long format
     df_perturb_long = df_perturb.melt(id_vars="GENE", var_name="name", value_name="value")
 
     threshold = df_perturb_long["value"].abs().quantile(1-top_signal)
@@ -186,9 +186,7 @@ def _prepare_perturb(perturb: str, top_signal: float) -> Tuple[pd.DataFrame, Lis
     df_perturb = df_perturb_long[df_perturb_long["value"].abs() >= threshold].groupby("name").filter(lambda x: len(x) >= 10).pivot(index="GENE", columns="name", values="value").reset_index().replace(jnp.nan, 0)
     
     ds_genes = df_perturb.columns[1 : df_perturb.shape[1]].tolist()
-    
-    import pdb; pdb.set_trace()
-    
+        
     log.logger.info(
         f"Perturb matrix contains {df_perturb.shape[0]} perturbed genes and {len(ds_genes)} downstream genes."
     )
@@ -236,10 +234,12 @@ def _process_raw(
     df_perturb = _prepare_perturb(perturb, top_signal)
 
     df_wk = (
-        df_eqtl[df_eqtl.GENE.isin(df_perturb.GENE)]
+        df_eqtl.merge(df_gwas, how="inner", on=["CHR", "SNP"])
+        .merge(df_perturb, how="inner", on="GENE")
         .sort_values(by=["CHR", "SNP"])
         .reset_index(drop=True)
     )
+    
     num_shared = len(df_wk.GENE.unique())
     chrs = df_wk["CHR"].unique()
     
@@ -275,7 +275,7 @@ def _process_raw(
         bim.columns = ["CHR", "SNP", "CM", "BP", "A0_ref", "A1_ref", "i"]
 
         bim.CHR = bim.CHR.astype(int)
-        df_snp = df_wk.merge(bim, how="inner", on=["CHR", "SNP"]).merge(df_gwas, how="inner", on=["CHR", "SNP"]).reset_index(drop=True)
+        df_snp = df_wk.merge(bim, how="inner", on=["CHR", "SNP"]).reset_index(drop=True)
         
         if df_snp.shape[0] == 0:
             log.logger.debug(
@@ -348,6 +348,7 @@ def _process_raw(
         X -= jnp.mean(X, axis=0)
         X /= jnp.std(X, axis=0)
         tmp_ld = X.T @ X / X.shape[0]
+        import pdb; pdb.set_trace()
         ld.append(tmp_ld + 1e-3 * jnp.eye(X.shape[1]))
         keep_snps.append(df_snp[["CHR", "SNP", "BETA", "SE", "Z_eqtl", "GENE"]])
         
