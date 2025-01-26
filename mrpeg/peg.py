@@ -161,31 +161,33 @@ def _prepare_eqtl(eqtl: str, eqtl_cols: List) -> pd.DataFrame:
 
 
 def _prepare_perturb(perturb: str, top_signal: float) -> Tuple[pd.DataFrame, List]:
+    if top_signal < 0 or top_signal > 1:
+        raise ValueError(
+                "The percentage of top signals need to greater than 0 and less or euqal to 1."
+            )
+            
     df_perturb = (
         pd.read_csv(perturb, sep="\t")
         .replace([jnp.inf, -jnp.inf], jnp.nan, inplace=False)
         .dropna(inplace=False)
         .reset_index(drop=True)
     )
+    
     df_perturb = df_perturb.rename(columns={f"{df_perturb.columns[0]}": "GENE"})
     
     # remove duplicated perturbed genes
-    df_perturb = df_perturb.drop_duplicates(subset="GENE", keep="first")
-
-    df_perturb = df_perturb.replace(jnp.nan, 0)
-    ds_genes = df_perturb.columns[1 : df_perturb.shape[1]].tolist()
-
-    import pdb; pdb.set_trace()
-    df_wk_pert = df_wk.drop(["CHR", "SNP", "BETA", "SE", "Z_eqtl"], axis=1).melt(id_vars="GENE", var_name="name", value_name="value")
-
-    threshold = df_wk_pert["value"].abs().quantile(1-top_signal)
+    df_perturb = df_perturb.drop_duplicates(subset="GENE", keep="first").replace(jnp.nan, 0)
     
-    if top_signal == 0:
-        log.logger.debug("Inference will use all perturbed genes.")
-    else:
-        if top_signal > df_perturb.shape[0]:
-            log.logger.warning("Specified number of top signal is larger than the" +
-                               "number of perturbed genes. Will use all perturbed genes.")
+    
+    df_perturb_long = df_perturb.melt(id_vars="GENE", var_name="name", value_name="value")
+
+    threshold = df_perturb_long["value"].abs().quantile(1-top_signal)
+    
+    df_perturb = df_perturb_long[df_perturb_long["value"].abs() >= threshold].groupby("name").filter(lambda x: len(x) >= 10).pivot(index="GENE", columns="name", values="value").reset_index().replace(jnp.nan, 0)
+    
+    ds_genes = df_perturb.columns[1 : df_perturb.shape[1]].tolist()
+    
+    import pdb; pdb.set_trace()
     
     log.logger.info(
         f"Perturb matrix contains {df_perturb.shape[0]} perturbed genes and {len(ds_genes)} downstream genes."
