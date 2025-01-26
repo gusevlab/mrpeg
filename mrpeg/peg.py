@@ -234,17 +234,14 @@ def _process_raw(
     df_perturb = _prepare_perturb(perturb, top_signal)
 
     df_wk = (
-        df_eqtl.merge(df_gwas, how="inner", on=["CHR", "SNP"])
-        .merge(df_perturb, how="inner", on="GENE")
+        df_eqtl[df_eqtl.GENE.isin(df_perturb.GENE)]
         .sort_values(by=["CHR", "SNP"])
         .reset_index(drop=True)
     )
     
     num_shared = len(df_wk.GENE.unique())
     chrs = df_wk["CHR"].unique()
-    
-    import pdb; pdb.set_trace()
-    
+        
     if num_shared <= 2:
         raise ValueError(
             f"Only {num_shared} shared genes between eQTL and perturb data. Check your input."
