@@ -506,7 +506,7 @@ def infer_peg(
 
     _, null_dist = lax.scan(_make_null, init_null, xs=None, length=perm_number)
     gamma_perm_z, gamma_perm_mean, = _get_p(gamma, null_dist)
-    import pdb; pdb.set_trace()
+    
     result = jnp.column_stack(
         (
             gamma,
