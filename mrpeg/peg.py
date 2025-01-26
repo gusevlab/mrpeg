@@ -214,7 +214,12 @@ def _allele_check(
     return correct_idx, flipped_idx, wrong_idx
 
 def prune_perturb(df_snp, df_perturb, df_ld):
-    import pdb; pdb.set_trace()
+    df_snp["perturb"] = df_perturb
+    df_snp = df_snp.reset_index(drop=False).sort_values(by="perturb", key=abs, ascending=False).reset_index(drop=True)
+    df_backup = df_snp.copy()
+    snp_delete = []
+    for row in df_snp.rows:
+        import pdb; pdb.set_trace()
     
     return res1, res2, res3
 
