@@ -237,7 +237,7 @@ def prune_perturb(df_snp, df_perturb, df_ld, corr_threshold=0.1):
             if nearby_snps.iloc[jdx,:].SNP in snp_delete:
                 continue
             tmp_corr = df_ld[focus_snp.index.values, nearby_snps.index.values[jdx]]
-            if tmp_corr.abs() > corr_threshold:
+            if jnp.abs(tmp_corr) > corr_threshold:
                 snp_delete.append(nearby_snps.iloc[jdx,:].SNP)
             
     import pdb; pdb.set_trace()
