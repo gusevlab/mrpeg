@@ -224,6 +224,7 @@ def _process_raw(
     top_signal: int,
     mr_ld: bool,
     corr_threshold: float,
+    min_snps: int,
 ) -> CleanData:
     # read in GWAS data
     df_gwas = _prepare_gwas(gwas, gwas_cols, keep_ambiguous)
@@ -353,8 +354,8 @@ def _process_raw(
             tmp_pert = df_snp[["GENE"]].merge(df_perturb, how="left", on="GENE")
             tmp_pert["mean_value"] = tmp_pert.iloc[:, 1:].abs().mean(axis=1)
             tmp_pert = tmp_pert[["GENE", "mean_value"]]
-            df_snp = df_snp.merge(tmp_pert, how="left", on="GENE").sort_values(by="mean_value", key=abs, ascending=False).reset_index(drop=True)
-            df_snp = df_snp.reset_index(drop=False)
+            import pdb; pdb.set_trace()
+            df_snp = df_snp.merge(tmp_pert, how="left", on="GENE").sort_values(by="mean_value", key=abs, ascending=False).reset_index(drop=False)
             snp_delete = []
             for idx in range(df_snp.shape[0]):
                 focus_snp = df_snp[df_snp.index == idx]
@@ -375,33 +376,32 @@ def _process_raw(
                     tmp_corr = tmp_ld[focus_snp.index.values, nearby_snps.index.values[jdx]]
                     if jnp.abs(tmp_corr) > corr_threshold:
                         snp_delete.append(nearby_snps.iloc[jdx,:].SNP)
-            
-            import pdb; pdb.set_trace()
+            df_snp = df_snp[~df_snp.SNP.isin(snp_delete)]
+            keep_snps.append(df_snp[["CHR", "SNP", "BETA", "SE", "Z_eqtl", "GENE"]])
+                
+    if mr_ld:
+        ld = block_diag(*ld)
+        df_wk = pd.concat(keep_snps).merge(df_perturb, how="left", on="GENE").reset_index(drop=True)
+        num_diff = num_shared - df_wk.shape[0]
+        log.logger.info(
+            f"{num_diff} genes are removed because no eQTLs in the reference data."
+        )
+        import pdb; pdb.set_trace()
+        filtered_long_df = df_wk.filter(lambda x: len(x) >= 1).pivot(index="GENE", columns="name", values="value").reset_index()
+
+        df_wk = df_wk[["CHR", "SNP", "BETA", "SE", "Z_eqtl", "GENE"]].reset_index().merge(filtered_long_df.fillna(0), how="inner", on="GENE").copy()
         
-    ld = block_diag(*ld)
-
-    df_wk = pd.concat(keep_snps).merge(df_perturb, how="left", on="GENE").reset_index(drop=True)
-    num_diff = num_shared - df_wk.shape[0]
-    log.logger.info(
-        f"{num_diff} genes are removed because no eQTLs in the reference data."
-    )
+        ld_subset = ld[df_wk["index"].values,:][:,df_wk["index"].values]
     
-    df_wk_pert = df_wk.drop(["CHR", "SNP", "BETA", "SE", "Z_eqtl"], axis=1).melt(id_vars="GENE", var_name="name", value_name="value")
-
-    threshold = df_wk_pert["value"].abs().quantile(1-top_signal)
-
-    filtered_long_df = df_wk_pert[df_wk_pert["value"].abs() >= threshold].groupby("name").filter(lambda x: len(x) >= 1).pivot(index="GENE", columns="name", values="value").reset_index()
-
-    df_wk = df_wk[["CHR", "SNP", "BETA", "SE", "Z_eqtl", "GENE"]].reset_index().merge(filtered_long_df.fillna(0), how="inner", on="GENE").copy()
-        
-    ld_subset = ld[df_wk["index"].values,:][:,df_wk["index"].values]
+        ds_genes = df_wk.columns[7:].tolist()
     
-    ds_genes = df_wk.columns[7:].tolist()
-    
-    log.logger.info(
-        f"Successfully prepared {df_wk.shape[0]} perturbed genes."
-        + f" Start running Mr PEG on {len(ds_genes)} downstream genes."
-    )
+        log.logger.info(
+            f"Successfully prepared {df_wk.shape[0]} perturbed genes."
+            + f" Start running Mr PEG on {len(ds_genes)} downstream genes."
+        )
+    else:
+        df_wk = pd.concat(keep_snps).merge(df_perturb, how="left", on="GENE").reset_index(drop=True)
+        import pdb; pdb.set_trace()
 
     gwas_hits = jnp.array((df_wk.BETA/df_wk.SE).abs() > 5.45) * 1
     sig_perturb = jnp.array(df_wk.iloc[:,7:] != 0) * 1
