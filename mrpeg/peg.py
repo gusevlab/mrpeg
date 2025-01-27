@@ -524,14 +524,7 @@ def infer_peg(
 
     gamma, gamma_se = _mrld(beta, X, inv_dvd)
     gamma_p = 2 * t.sf(jnp.abs(gamma / gamma_se), jnp.sum(X != 0,axis=0) - 1)
-    import statsmodels.api as sm
-    import numpy as np
-    p_val = []
-    for idx in range(X.shape[1]):
-        model = sm.WLS(np.array(beta), np.array(X[:, idx]), weights = np.diag(inv_dvd)).fit()
-        p_val.append(model.pvalues[0])
-    gamma_p2 = jnp.array(p_val)
-    import pdb; pdb.set_trace()
+    
     log.logger.info(f"Starting permutation test with {perm_number} times.")
     
     init_null = null_result(
