@@ -80,7 +80,8 @@ def run_peg(args):
             args.ref_geno,
             args.keep_ambiguous,
             args.top_signal,
-            args.mr_ld
+            args.mr_ld,
+            args.corr_threshold,
         )
         
         infer_result = peg.infer_peg(
@@ -314,6 +315,15 @@ def build_peg_parser(subp):
         "--mr-ld",
         default=False,
         action="store_true",
+        help=(
+            "Indicator to perform LD-adjusted version of mendelian randomization."
+        ),
+    )
+    
+    peg.add_argument(
+        "--corr-threshold",
+        default=0.1,
+        type=float,
         help=(
             "Indicator to perform LD-adjusted version of mendelian randomization."
         ),

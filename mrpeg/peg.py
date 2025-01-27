@@ -213,18 +213,6 @@ def _allele_check(
 
     return correct_idx, flipped_idx, wrong_idx
 
-def prune_perturb(df_snp, df_perturb, df_ld, corr_threshold=0.1):
-    
-    
-    df_snp = df_snp.sort_values(by="index").drop("index", axis=1).reset_index(drop=True)
-    
-    res1 = df_snp["BETA"].where(~df_snp["SNP"].isin(snp_delete), 0).to_numpy()
-    res2 = df_snp["SE"].to_numpy()
-    res3 = df_snp["Z_eqtl"].where(~df_snp["SNP"].isin(snp_delete), 0).to_numpy()
-    res4 = df_snp["perturb"].where(~df_snp["SNP"].isin(snp_delete), 0).to_numpy()
-    
-    return res1, res2, res3, res4
-
 def _process_raw(
     gwas: str,
     eqtl: str,
@@ -235,6 +223,7 @@ def _process_raw(
     keep_ambiguous: bool,
     top_signal: int,
     mr_ld: bool,
+    corr_threshold: float,
 ) -> CleanData:
     # read in GWAS data
     df_gwas = _prepare_gwas(gwas, gwas_cols, keep_ambiguous)
@@ -361,10 +350,11 @@ def _process_raw(
             ld.append(tmp_ld + 1e-3 * jnp.eye(X.shape[1]))
             keep_snps.append(df_snp[["CHR", "SNP", "BETA", "SE", "Z_eqtl", "GENE"]])
         else:
-            tmp_pert = df_snp[["GENE"]].merge(df_perturb, how="left", on="GENE").drop(["GENE"], axis=1)
-            import pdb; pdb.set_trace()
-            df_snp["perturb"] = df_perturb
-            df_snp = df_snp.reset_index(drop=False).sort_values(by="perturb", key=abs, ascending=False).reset_index(drop=True)
+            tmp_pert = df_snp[["GENE"]].merge(df_perturb, how="left", on="GENE")
+            tmp_pert["mean_value"] = tmp_pert.iloc[:, 1:].abs().mean(axis=1)
+            tmp_pert = tmp_pert[["GENE", "mean_value"]]
+            df_snp = df_snp.merge(tmp_pert, how="left", on="GENE").sort_values(by="mean_value", key=abs, ascending=False).reset_index(drop=True)
+            df_snp = df_snp.reset_index(drop=False)
             snp_delete = []
             for idx in range(df_snp.shape[0]):
                 focus_snp = df_snp[df_snp.index == idx]
@@ -382,7 +372,7 @@ def _process_raw(
                 for jdx in range(nearby_snps.shape[0]):
                     if nearby_snps.iloc[jdx,:].SNP in snp_delete:
                         continue
-                    tmp_corr = df_ld[focus_snp.index.values, nearby_snps.index.values[jdx]]
+                    tmp_corr = tmp_ld[focus_snp.index.values, nearby_snps.index.values[jdx]]
                     if jnp.abs(tmp_corr) > corr_threshold:
                         snp_delete.append(nearby_snps.iloc[jdx,:].SNP)
             
