@@ -354,29 +354,30 @@ def _process_raw(
             tmp_pert = df_snp[["GENE"]].merge(df_perturb, how="left", on="GENE")
             tmp_pert["mean_value"] = tmp_pert.iloc[:, 1:].abs().mean(axis=1)
             tmp_pert = tmp_pert[["GENE", "mean_value"]]
-            import pdb; pdb.set_trace()
+            
             df_snp = df_snp.merge(tmp_pert, how="left", on="GENE").sort_values(by="mean_value", key=abs, ascending=False).reset_index(drop=False)
             snp_delete = []
-            for idx in range(df_snp.shape[0]):
-                focus_snp = df_snp[df_snp.index == idx]
+            for jdx in range(df_snp.shape[0]):
+                focus_snp = df_snp.iloc[[jdx], :]
         
                 if focus_snp.SNP.values in snp_delete:
                     continue
         
-                other_snp = df_snp[df_snp.index != idx]
+                other_snp = df_snp.copy().drop(index = jdx)
                 focus_BP = focus_snp["BP"].values[0]
                 nearby_snps = other_snp[(other_snp["BP"] >= (focus_BP - 5e5)) & (other_snp["BP"] <= (focus_BP + 5e5))]
         
                 if nearby_snps.shape[0] == 0:    
                     continue
         
-                for jdx in range(nearby_snps.shape[0]):
-                    if nearby_snps.iloc[jdx,:].SNP in snp_delete:
+                for kdx in range(nearby_snps.shape[0]):
+                    if nearby_snps.iloc[kdx,:].SNP in snp_delete:
                         continue
-                    tmp_corr = tmp_ld[focus_snp.index.values, nearby_snps.index.values[jdx]]
+                    tmp_corr = tmp_ld[focus_snp.index.values, nearby_snps.index.values[kdx]]
                     if jnp.abs(tmp_corr) > corr_threshold:
-                        snp_delete.append(nearby_snps.iloc[jdx,:].SNP)
+                        snp_delete.append(nearby_snps.iloc[kdx,:].SNP)
             df_snp = df_snp[~df_snp.SNP.isin(snp_delete)]
+            import pdb; pdb.set_trace()
             keep_snps.append(df_snp[["CHR", "SNP", "BETA", "SE", "Z_eqtl", "GENE"]])
                 
     if mr_ld:
@@ -406,7 +407,7 @@ def _process_raw(
     import pdb; pdb.set_trace()
     
     gwas_hits = jnp.array((df_wk.BETA/df_wk.SE).abs() > 5.45) * 1
-    sig_perturb = jnp.array(df_wk.iloc[:,7:] != 0) * 1
+    sig_perturb = jnp.sum(jnp.array(df_wk.iloc[:,7:] != 0) * 1,axis=0)
     gwas_hits_perturb = jnp.einsum("i,ik->k", gwas_hits, sig_perturb)
     
     result = CleanData(
@@ -416,7 +417,7 @@ def _process_raw(
         perturb=jnp.array(df_wk.iloc[:,7:]),
         inv_ld=jnp.array(inv(ld_subset)),
         gene_names=ds_genes,
-        num_perturb=jnp.sum(sig_perturb,axis=0),
+        num_perturb=sig_perturb,
         num_gwas_sig=gwas_hits_perturb,
         metadata=df_wk
     )
