@@ -216,15 +216,12 @@ def _allele_check(
 def prune_perturb(df_snp, df_perturb, df_ld, corr_threshold=0.1):
     df_snp["perturb"] = df_perturb
     df_snp = df_snp.reset_index(drop=False).sort_values(by="perturb", key=abs, ascending=False).reset_index(drop=True)
-    df_backup = df_snp.copy()
     snp_delete = []
-    snp_df_keep = []
     for idx in range(df_snp.shape[0]):
         focus_snp = df_snp[df_snp.index == idx]
         
-        if focus_snp.SNP.isin(snp_delete).values:
+        if focus_snp.SNP.values in snp_delete:
             continue
-        snp_df_keep.append(focus_snp)
         
         other_snp = df_snp[df_snp.index != idx]
         focus_BP = focus_snp["BP"].values[0]
@@ -239,10 +236,15 @@ def prune_perturb(df_snp, df_perturb, df_ld, corr_threshold=0.1):
             tmp_corr = df_ld[focus_snp.index.values, nearby_snps.index.values[jdx]]
             if jnp.abs(tmp_corr) > corr_threshold:
                 snp_delete.append(nearby_snps.iloc[jdx,:].SNP)
-            
-    import pdb; pdb.set_trace()
-        
-    return res1, res2, res3
+    
+    df_snp = df_snp.sort_values(by="index").drop("index", axis=1).reset_index(drop=True)
+    
+    res1 = df_snp["BETA"].where(~df_snp["SNP"].isin(snp_delete), 0).to_numpy()
+    res2 = df_snp["SE"].to_numpy()
+    res3 = df_snp["Z_eqtl"].where(~df_snp["SNP"].isin(snp_delete), 0).to_numpy()
+    res4 = df_snp["perturb"].where(~df_snp["SNP"].isin(snp_delete), 0).to_numpy()
+    
+    return res1, res2, res3, res4
 
 def _process_raw(
     gwas: str,
@@ -376,23 +378,29 @@ def _process_raw(
         X -= jnp.mean(X, axis=0)
         X /= jnp.std(X, axis=0)
         tmp_ld = X.T @ X / X.shape[0]
+        if mr_ld:
+            ld.append(tmp_ld + 1e-3 * jnp.eye(X.shape[1]))
+            keep_snps.append(df_snp[["CHR", "SNP", "BETA", "SE", "Z_eqtl", "GENE"]])
+        else:
+            tmp_pert = df_snp[["GENE"]].merge(df_perturb, how="left", on="GENE").drop(["GENE"], axis=1)
+            
+            res1 = []
+            res2 = []
+            res3 = []
+            res4 = []
+            for col in tmp_pert.columns:
+                arr1, arr2, arr3, arr4 = prune_perturb(df_snp, tmp_pert[col], tmp_ld)
+                res1.append(arr1)
+                res2.append(arr2)
+                res3.append(arr3)
+                res4.append(arr4)
+            
+            gwas_beta = jnp.vstack(res1)
+            gwas_se = jnp.vstack(res2)
+            z_eqtl = jnp.vstack(res3)
+            perturb = jnp.vstack(res4)
+            import pdb; pdb.set_trace()
         
-        tmp_pert = df_snp[["GENE"]].merge(df_perturb, how="left", on="GENE").drop(["GENE"], axis=1)
-        
-        res1 = []
-        res2 = []
-        res3 = []
-        
-        for col in tmp_pert.columns:
-            arr1, arr2, arr3 = prune_perturb(df_snp, tmp_pert[col], tmp_ld)
-            res1.append(arr1)
-            res2.append(arr2)
-            res3.append(arr3)
-        
-        ld.append(tmp_ld + 1e-3 * jnp.eye(X.shape[1]))
-        keep_snps.append(df_snp[["CHR", "SNP", "BETA", "SE", "Z_eqtl", "GENE"]])
-        
-
     ld = block_diag(*ld)
 
     df_wk = pd.concat(keep_snps).merge(df_perturb, how="left", on="GENE").reset_index(drop=True)
