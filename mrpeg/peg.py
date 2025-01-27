@@ -386,10 +386,11 @@ def _process_raw(
     
     if mr_ld:
         ld = block_diag(*ld)
+        ld_subset = ld[df_wk["index"].values,:][:,df_wk["index"].values]
+        inv_ld = inv(ld_subset)
     else:
-        ld = jnp.eye(df_wk.shape[0])
+        inv_ld = jnp.eye(df_wk.shape[0])
 
-    ld_subset = ld[df_wk["index"].values,:][:,df_wk["index"].values]
     ds_genes = df_wk.columns[7:].tolist()
 
     log.logger.info(
@@ -401,13 +402,12 @@ def _process_raw(
     sig_perturb = jnp.array(df_wk.iloc[:,7:] != 0) * 1
     gwas_hits_perturb = jnp.einsum("i,ik->k", gwas_hits, sig_perturb)
     
-    import pdb; pdb.set_trace()
     result = CleanData(
         beta=jnp.array(df_wk.BETA),
         se=df_wk.SE.values,
         eqtl=jnp.array(df_wk.Z_eqtl),
         perturb=jnp.array(df_wk.iloc[:,7:]),
-        inv_ld=jnp.array(inv(ld_subset)),
+        inv_ld=jnp.array(inv_ld),
         gene_names=ds_genes,
         num_perturb=jnp.sum(sig_perturb,axis=0),
         num_gwas_sig=gwas_hits_perturb,
@@ -516,7 +516,7 @@ def infer_peg(
         )
     
     rng_key = random.PRNGKey(seed)
-    import pdb; pdb.set_trace()
+
     X = jnp.einsum("i,ij->ij", eqtl, perturb)
     mat_inv_se = jnp.diag(1 / se)
     inv_dvd = mat_inv_se @ inv_ld @ mat_inv_se
