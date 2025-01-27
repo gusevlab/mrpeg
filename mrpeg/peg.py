@@ -213,7 +213,7 @@ def _allele_check(
 
     return correct_idx, flipped_idx, wrong_idx
 
-def prune_perturb(df_snp, df_perturb, df_ld):
+def prune_perturb(df_snp, df_perturb, df_ld, corr_threshold=0.1):
     df_snp["perturb"] = df_perturb
     df_snp = df_snp.reset_index(drop=False).sort_values(by="perturb", key=abs, ascending=False).reset_index(drop=True)
     df_backup = df_snp.copy()
@@ -224,14 +224,23 @@ def prune_perturb(df_snp, df_perturb, df_ld):
         
         if focus_snp.SNP.isin(snp_delete).values:
             continue
+        snp_df_keep.append(focus_snp)
         
         other_snp = df_snp[df_snp.index != idx]
         focus_BP = focus_snp["BP"].values[0]
         nearby_snps = other_snp[(other_snp["BP"] >= (focus_BP - 5e5)) & (other_snp["BP"] <= (focus_BP + 5e5))]
-        if nearby_snps.shape[0] == 0:
-            snp_df_keep.append(focus_snp)
+        
+        if nearby_snps.shape[0] == 0:    
             continue
-        import pdb; pdb.set_trace()
+        
+        for jdx in range(nearby_snps.shape[0]):
+            if nearby_snps.iloc[jdx,:].SNP in snp_delete:
+                continue
+            tmp_corr = df_ld[focus_snp.index.values, nearby_snps.index.values[jdx]]
+            if tmp_corr.abs() > corr_threshold:
+                snp_delete.append(nearby_snps.iloc[jdx,:].SNP)
+            
+    import pdb; pdb.set_trace()
         
     return res1, res2, res3
 
