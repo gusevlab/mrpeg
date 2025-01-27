@@ -379,14 +379,14 @@ def _process_raw(
             df_snp = df_snp[~df_snp.SNP.isin(snp_delete)]
             keep_snps.append(df_snp[["CHR", "SNP", "BETA", "SE", "Z_eqtl", "GENE"]])
     
-    df_wk = pd.concat(keep_snps).reset_index().merge(df_perturb, how="left", on="GENE")
+    df_wk = pd.concat(keep_snps).reset_index(drop=True).reset_index().merge(df_perturb, how="left", on="GENE")
+    import pdb; pdb.set_trace()
     df_wk_pert = df_wk.drop(["index", "CHR", "SNP", "BETA", "SE", "Z_eqtl"], axis=1).melt(id_vars="GENE", var_name="name", value_name="value")
     df_wk_pert = df_wk_pert[df_wk_pert["value"] != 0].groupby("name").filter(lambda x: len(x) >= min_snps).pivot(index="GENE", columns="name", values="value")
     df_wk = df_wk[["index", "CHR", "SNP", "BETA", "SE", "Z_eqtl", "GENE"]].merge(df_wk_pert.fillna(0), how="inner", on="GENE").copy()
     
     if mr_ld:
         ld = block_diag(*ld)
-        import pdb; pdb.set_trace()
         ld_subset = ld[df_wk["index"].values,:][:,df_wk["index"].values]
         inv_ld = inv(ld_subset)
     else:
@@ -424,8 +424,7 @@ def _mrld(y, X, inv_dvd):
     gamma = gamma_num / gamma_dem
 
     epi_hat = y[:, jnp.newaxis] - jnp.einsum("ij,j->ij", X, gamma)
-    import pdb; pdb.set_trace()
-    df = y.shape[0] - 1
+    df = jnp.sum(X != 0,axis=0) - 1
     sigma_sq_hat = (1 / df) * jnp.einsum("ij,jk,ki->i", epi_hat.T, inv_dvd, epi_hat)
     se = jnp.sqrt(sigma_sq_hat / gamma_dem)
     
@@ -522,7 +521,7 @@ def infer_peg(
     X = jnp.einsum("i,ij->ij", eqtl, perturb)
     mat_inv_se = jnp.diag(1 / se)
     inv_dvd = mat_inv_se @ inv_ld @ mat_inv_se
-    import pdb; pdb.set_trace()
+
     gamma, gamma_se = _mrld(beta, X, inv_dvd)
     gamma_p = 2 * t.sf(jnp.abs(gamma / gamma_se), beta.shape[0] - 1)
     
