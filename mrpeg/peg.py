@@ -380,7 +380,7 @@ def _process_raw(
             keep_snps.append(df_snp[["CHR", "SNP", "BETA", "SE", "Z_eqtl", "GENE"]])
     
     df_wk = pd.concat(keep_snps).reset_index(drop=True).reset_index().merge(df_perturb, how="left", on="GENE")
-    import pdb; pdb.set_trace()
+
     df_wk_pert = df_wk.drop(["index", "CHR", "SNP", "BETA", "SE", "Z_eqtl"], axis=1).melt(id_vars="GENE", var_name="name", value_name="value")
     df_wk_pert = df_wk_pert[df_wk_pert["value"] != 0].groupby("name").filter(lambda x: len(x) >= min_snps).pivot(index="GENE", columns="name", values="value")
     df_wk = df_wk[["index", "CHR", "SNP", "BETA", "SE", "Z_eqtl", "GENE"]].merge(df_wk_pert.fillna(0), how="inner", on="GENE").copy()
