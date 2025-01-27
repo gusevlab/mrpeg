@@ -377,7 +377,6 @@ def _process_raw(
                     if jnp.abs(tmp_corr) > corr_threshold:
                         snp_delete.append(nearby_snps.iloc[kdx,:].SNP)
             df_snp = df_snp[~df_snp.SNP.isin(snp_delete)]
-            import pdb; pdb.set_trace()
             keep_snps.append(df_snp[["CHR", "SNP", "BETA", "SE", "Z_eqtl", "GENE"]])
                 
     if mr_ld:
@@ -402,6 +401,10 @@ def _process_raw(
         )
     else:
         df_wk = pd.concat(keep_snps).merge(df_perturb, how="left", on="GENE").reset_index(drop=True)
+        num_diff = num_shared - df_wk.shape[0]
+        log.logger.info(
+            f"{num_diff} genes are removed because no eQTLs in the reference data."
+        )
         import pdb; pdb.set_trace()
 
     import pdb; pdb.set_trace()
