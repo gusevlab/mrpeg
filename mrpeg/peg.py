@@ -214,28 +214,7 @@ def _allele_check(
     return correct_idx, flipped_idx, wrong_idx
 
 def prune_perturb(df_snp, df_perturb, df_ld, corr_threshold=0.1):
-    df_snp["perturb"] = df_perturb
-    df_snp = df_snp.reset_index(drop=False).sort_values(by="perturb", key=abs, ascending=False).reset_index(drop=True)
-    snp_delete = []
-    for idx in range(df_snp.shape[0]):
-        focus_snp = df_snp[df_snp.index == idx]
-        
-        if focus_snp.SNP.values in snp_delete:
-            continue
-        
-        other_snp = df_snp[df_snp.index != idx]
-        focus_BP = focus_snp["BP"].values[0]
-        nearby_snps = other_snp[(other_snp["BP"] >= (focus_BP - 5e5)) & (other_snp["BP"] <= (focus_BP + 5e5))]
-        
-        if nearby_snps.shape[0] == 0:    
-            continue
-        
-        for jdx in range(nearby_snps.shape[0]):
-            if nearby_snps.iloc[jdx,:].SNP in snp_delete:
-                continue
-            tmp_corr = df_ld[focus_snp.index.values, nearby_snps.index.values[jdx]]
-            if jnp.abs(tmp_corr) > corr_threshold:
-                snp_delete.append(nearby_snps.iloc[jdx,:].SNP)
+    
     
     df_snp = df_snp.sort_values(by="index").drop("index", axis=1).reset_index(drop=True)
     
@@ -383,22 +362,30 @@ def _process_raw(
             keep_snps.append(df_snp[["CHR", "SNP", "BETA", "SE", "Z_eqtl", "GENE"]])
         else:
             tmp_pert = df_snp[["GENE"]].merge(df_perturb, how="left", on="GENE").drop(["GENE"], axis=1)
+            import pdb; pdb.set_trace()
+            df_snp["perturb"] = df_perturb
+            df_snp = df_snp.reset_index(drop=False).sort_values(by="perturb", key=abs, ascending=False).reset_index(drop=True)
+            snp_delete = []
+            for idx in range(df_snp.shape[0]):
+                focus_snp = df_snp[df_snp.index == idx]
+        
+                if focus_snp.SNP.values in snp_delete:
+                    continue
+        
+                other_snp = df_snp[df_snp.index != idx]
+                focus_BP = focus_snp["BP"].values[0]
+                nearby_snps = other_snp[(other_snp["BP"] >= (focus_BP - 5e5)) & (other_snp["BP"] <= (focus_BP + 5e5))]
+        
+                if nearby_snps.shape[0] == 0:    
+                    continue
+        
+                for jdx in range(nearby_snps.shape[0]):
+                    if nearby_snps.iloc[jdx,:].SNP in snp_delete:
+                        continue
+                    tmp_corr = df_ld[focus_snp.index.values, nearby_snps.index.values[jdx]]
+                    if jnp.abs(tmp_corr) > corr_threshold:
+                        snp_delete.append(nearby_snps.iloc[jdx,:].SNP)
             
-            res1 = []
-            res2 = []
-            res3 = []
-            res4 = []
-            for col in tmp_pert.columns:
-                arr1, arr2, arr3, arr4 = prune_perturb(df_snp, tmp_pert[col], tmp_ld)
-                res1.append(arr1)
-                res2.append(arr2)
-                res3.append(arr3)
-                res4.append(arr4)
-            
-            gwas_beta = jnp.vstack(res1)
-            gwas_se = jnp.vstack(res2)
-            z_eqtl = jnp.vstack(res3)
-            perturb = jnp.vstack(res4)
             import pdb; pdb.set_trace()
         
     ld = block_diag(*ld)
