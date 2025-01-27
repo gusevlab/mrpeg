@@ -397,11 +397,11 @@ def _process_raw(
             + f" Start running Mr PEG on {len(ds_genes)} downstream genes."
         )
     
+    import pdb; pdb.set_trace()
+    
     gwas_hits = jnp.array((df_wk.BETA/df_wk.SE).abs() > 5.45) * 1
     sig_perturb = jnp.sum(jnp.array(df_wk.iloc[:,7:] != 0) * 1,axis=0)
     gwas_hits_perturb = jnp.einsum("i,ik->k", gwas_hits, sig_perturb)
-    
-    import pdb; pdb.set_trace()
     
     result = CleanData(
         beta=jnp.array(df_wk.BETA),
