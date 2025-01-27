@@ -401,6 +401,7 @@ def _process_raw(
     sig_perturb = jnp.array(df_wk.iloc[:,7:] != 0) * 1
     gwas_hits_perturb = jnp.einsum("i,ik->k", gwas_hits, sig_perturb)
     
+    import pdb; pdb.set_trace()
     result = CleanData(
         beta=jnp.array(df_wk.BETA),
         se=df_wk.SE.values,
