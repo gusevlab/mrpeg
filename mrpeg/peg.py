@@ -528,9 +528,9 @@ def infer_peg(
     import numpy as np
     p_val = []
     for idx in range(X.shape[1]):
-        model = sm.WLS(np.array(beta), X[:, idx], weights = np.diag(inv_dvd)).fit()
+        model = sm.WLS(np.array(beta), np.array(X[:, idx]), weights = np.diag(inv_dvd)).fit()
         p_val.append(model.pvalues[0])
-    gamma_p = jnp.array(p_val)
+    gamma_p2 = jnp.array(p_val)
     import pdb; pdb.set_trace()
     log.logger.info(f"Starting permutation test with {perm_number} times.")
     
