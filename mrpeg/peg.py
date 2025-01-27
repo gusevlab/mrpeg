@@ -381,15 +381,15 @@ def _process_raw(
                 
     if mr_ld:
         ld = block_diag(*ld)
-        df_wk = pd.concat(keep_snps).merge(df_perturb, how="left", on="GENE").reset_index(drop=True)
+        df_wk = pd.concat(keep_snps).reset_index().merge(df_perturb, how="left", on="GENE")
         num_diff = num_shared - df_wk.shape[0]
         log.logger.info(
             f"{num_diff} genes are removed because no eQTLs in the reference data."
         )
-        import pdb; pdb.set_trace()
-        filtered_long_df = df_wk.filter(lambda x: len(x) >= 1).pivot(index="GENE", columns="name", values="value").reset_index()
+        df_wk_pert = df_wk.drop(["index", "CHR", "SNP", "BETA", "SE", "Z_eqtl"], axis=1).melt(id_vars="GENE", var_name="name", value_name="value")
+        df_wk_pert = df_wk_pert[df_wk_pert["value"] != 0].groupby("name").filter(lambda x: len(x) >= min_snps).pivot(index="GENE", columns="name", values="value")
 
-        df_wk = df_wk[["CHR", "SNP", "BETA", "SE", "Z_eqtl", "GENE"]].reset_index().merge(filtered_long_df.fillna(0), how="inner", on="GENE").copy()
+        df_wk = df_wk[["index", "CHR", "SNP", "BETA", "SE", "Z_eqtl", "GENE"]].merge(df_wk_pert.fillna(0), how="inner", on="GENE").copy()
         
         ld_subset = ld[df_wk["index"].values,:][:,df_wk["index"].values]
     
@@ -403,6 +403,8 @@ def _process_raw(
         df_wk = pd.concat(keep_snps).merge(df_perturb, how="left", on="GENE").reset_index(drop=True)
         import pdb; pdb.set_trace()
 
+    import pdb; pdb.set_trace()
+    
     gwas_hits = jnp.array((df_wk.BETA/df_wk.SE).abs() > 5.45) * 1
     sig_perturb = jnp.array(df_wk.iloc[:,7:] != 0) * 1
     gwas_hits_perturb = jnp.einsum("i,ik->k", gwas_hits, sig_perturb)
