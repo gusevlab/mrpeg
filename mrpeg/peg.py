@@ -524,7 +524,7 @@ def infer_peg(
 
     gamma, gamma_se = _mrld(beta, X, inv_dvd)
     gamma_p = 2 * t.sf(jnp.abs(gamma / gamma_se), jnp.sum(X != 0,axis=0) - 1)
-    
+
     log.logger.info(f"Starting permutation test with {perm_number} times.")
     
     init_null = null_result(
@@ -537,7 +537,7 @@ def infer_peg(
 
     _, null_dist = lax.scan(_make_null, init_null, xs=None, length=perm_number)
     gamma_perm_z, gamma_perm_mean, = _get_p(gamma, null_dist)
-    
+    import pdb; pdb.set_trace()
     result = jnp.column_stack(
         (
             gamma,
