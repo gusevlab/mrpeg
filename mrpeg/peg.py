@@ -403,6 +403,8 @@ def _process_raw(
     sig_perturb = jnp.array(df_wk.iloc[:,7:] != 0) * 1
     gwas_hits_perturb = jnp.einsum("i,ik->k", gwas_hits, sig_perturb)
     
+    import pdb; pdb.set_trace()
+    
     result = CleanData(
         beta=jnp.array(df_wk.BETA),
         se=df_wk.SE.values,
@@ -537,7 +539,10 @@ def infer_peg(
 
     _, null_dist = lax.scan(_make_null, init_null, xs=None, length=perm_number)
     gamma_perm_z, gamma_perm_mean, = _get_p(gamma, null_dist)
+    _, null_dist2 = lax.scan(_make_null, init_null, xs=None, length=2000)
+    gamma_perm_z2, gamma_perm_mean2, = _get_p(gamma, null_dist2)
     import pdb; pdb.set_trace()
+    
     result = jnp.column_stack(
         (
             gamma,
