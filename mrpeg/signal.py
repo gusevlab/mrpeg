@@ -264,13 +264,20 @@ def _summarize(anno_snps, df_ref):
         .apply(
             lambda x: pd.Series(
                 {
-                    "mean": np.mean(x ** 2),
-                    "sd": np.std(x ** 2),
-                    "median": np.median(x ** 2),
-                    "max": np.max(x ** 2),
-                    "min": np.min(x ** 2),
-                    "qtl1": np.percentile(x ** 2, 25),
-                    "qtl3": np.percentile(x ** 2, 75),
+                    "mean_chisq": np.mean(x ** 2),
+                    "sd_chisq": np.std(x ** 2),
+                    "median_chisq": np.median(x ** 2),
+                    "max_chisq": np.max(x ** 2),
+                    "min_chisq": np.min(x ** 2),
+                    "qtl1_chisq": np.percentile(x ** 2, 25),
+                    "qtl3_chisq": np.percentile(x ** 2, 75),
+                    "mean_z": np.mean(x),
+                    "sd_z": np.std(x),
+                    "median_z": np.median(x),
+                    "max_z": np.max(x),
+                    "min_z": np.min(x),
+                    "qtl1_z": np.percentile(x, 25),
+                    "qtl3_z": np.percentile(x, 75),
                     "count": x.size,
                 }
             )
