@@ -488,7 +488,7 @@ def _make_null2(result: null_result, empty: Any):
 
     new_perturb = random.permutation(gamma_key, perturb, 0)
     X_perturb = jnp.einsum("i,ij->ij", eqtl, new_perturb)
-    gamma, _ = _mrld(gwas_beta, X_perturb, d, v, inv_d, inv_v, inv_dvd)
+    gamma, _ = _mrld2(gwas_beta, X_perturb, d, v, inv_d, inv_v, inv_dvd)
 
     carry = result._replace(
         rng_key=rng_key,
