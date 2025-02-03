@@ -559,13 +559,14 @@ def infer_peg(
 
     X = jnp.einsum("i,ij->ij", eqtl, perturb)
     inv_se = jnp.diag(1 / se)
+    mat_se = jnp.diag(se)
     inv_ld = inv(ld)
     inv_dvd = inv_se @ inv_ld @ inv_se
 
     gamma, gamma_se = _mrld(beta, X, inv_dvd)
     gamma_p = 2 * t.sf(jnp.abs(gamma / gamma_se), jnp.sum(X != 0,axis=0) - 1)
 
-    gamma2, gamma_se2 = _mrld2(beta, X, se, ld, inv_se, inv_ld, inv_dvd)
+    gamma2, gamma_se2 = _mrld2(beta, X, mat_se, ld, inv_se, inv_ld, inv_dvd)
     gamma_p2 = 2 * t.sf(jnp.abs(gamma2 / gamma_se2), jnp.sum(X != 0,axis=0) - 1)
     
     log.logger.info(f"Starting permutation test with {perm_number} times.")
@@ -585,7 +586,7 @@ def infer_peg(
         gwas_beta=beta,
         eqtl=eqtl,
         perturb=perturb,
-        d=se,
+        d=mat_se,
         v=ld,
         inv_d=inv_se,
         inv_v=inv_ld,
