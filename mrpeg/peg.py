@@ -42,10 +42,10 @@ class CleanData(NamedTuple):
 
     Attributes:
         beta: The GWAS effect size.
-        inv_se: The diagonal matrix of inverse of GWAS standard error.
+        se: The diagonal matrix of inverse of GWAS standard error.
         eqtl: The eQTL z scores.
         perturb: The perturbation effect z scores.
-        inv_ld: The inverse of the LD matrix
+        ld: The inverse of the LD matrix
         gene_names: The downstream gene names.
 
     """
@@ -54,7 +54,7 @@ class CleanData(NamedTuple):
     se: Array
     eqtl: Array
     perturb: Array
-    inv_ld: Array
+    ld: Array
     gene_names: List
     num_perturb: Array
     num_gwas_sig: Array
@@ -388,9 +388,8 @@ def _process_raw(
     if mr_ld:
         ld = block_diag(*ld)
         ld_subset = ld[df_wk["index"].values,:][:,df_wk["index"].values]
-        inv_ld = inv(ld_subset)
     else:
-        inv_ld = jnp.eye(df_wk.shape[0])
+        ld_subset = jnp.eye(df_wk.shape[0])
 
     ds_genes = df_wk.columns[7:].tolist()
 
@@ -402,15 +401,13 @@ def _process_raw(
     gwas_hits = jnp.array((df_wk.BETA/df_wk.SE).abs() > 5.45) * 1
     sig_perturb = jnp.array(df_wk.iloc[:,7:] != 0) * 1
     gwas_hits_perturb = jnp.einsum("i,ik->k", gwas_hits, sig_perturb)
-    
-    import pdb; pdb.set_trace()
-    
+        
     result = CleanData(
         beta=jnp.array(df_wk.BETA),
         se=df_wk.SE.values,
         eqtl=jnp.array(df_wk.Z_eqtl),
         perturb=jnp.array(df_wk.iloc[:,7:]),
-        inv_ld=jnp.array(inv_ld),
+        ld=jnp.array(ld_subset),
         gene_names=ds_genes,
         num_perturb=jnp.sum(sig_perturb,axis=0),
         num_gwas_sig=gwas_hits_perturb,
@@ -432,6 +429,17 @@ def _mrld(y, X, inv_dvd):
 
     return gamma, se
 
+def _mrld2(y, X, d, v, inv_d, inv_v, inv_dvd):
+    gamma_num = jnp.squeeze(jnp.einsum("ij,ja,ab,bk,km->im", X.T, inv_v, inv_d, inv_d, y[:, jnp.newaxis]))
+    gamma_dem = jnp.einsum("ij,ja,ab,bc,cd,dk,ki->i", X.T, inv_v, inv_d, v, inv_d, inv_v, X)
+    gamma = gamma_num / gamma_dem
+
+    epi_hat = y[:, jnp.newaxis] - jnp.einsum("ik,kl,lm,mn,nj,j->ij", d, v, inv_d, inv_v, X, gamma)
+    df = jnp.sum(X != 0,axis=0) - 1
+    sigma_sq_hat = (1 / df) * jnp.einsum("ij,jk,ki->i", epi_hat.T, inv_dvd, epi_hat)
+    se = jnp.sqrt(sigma_sq_hat / gamma_dem)
+
+    return gamma, se
 
 class null_result(NamedTuple):
     gwas_beta: Array
@@ -459,6 +467,35 @@ def _make_null(result: null_result, empty: Any):
     return carry, gamma
 
 
+class null_result2(NamedTuple):
+    gwas_beta: Array
+    eqtl: Array
+    perturb: Array
+    d: Array
+    v: Array
+    inv_d: Array
+    inv_v: Array
+    inv_dvd: Array
+    rng_key: prng.PRNGKeyArray
+    
+
+def _make_null2(result: null_result, empty: Any):
+    del empty
+
+    gwas_beta, eqtl, perturb, d, v, inv_d, inv_v, inv_dvd, rng_key = result
+
+    rng_key, gamma_key = random.split(rng_key, 2)
+
+    new_perturb = random.permutation(gamma_key, perturb, 0)
+    X_perturb = jnp.einsum("i,ij->ij", eqtl, new_perturb)
+    gamma, _ = _mrld(gwas_beta, X_perturb, d, v, inv_d, inv_v, inv_dvd)
+
+    carry = result._replace(
+        rng_key=rng_key,
+    )
+
+    return carry, gamma
+
 def _get_p(gamma, null):
     null_mean = jnp.mean(null, axis=0)
     null_sd = jnp.std(null, axis=0)
@@ -471,7 +508,7 @@ def infer_peg(
     se: ArrayLike,
     eqtl: ArrayLike,
     perturb: ArrayLike,
-    inv_ld: ArrayLike,
+    ld: ArrayLike,
     perm_number: int = 500,
     seed: int = 12345,
 ) -> Array:
@@ -510,7 +547,7 @@ def infer_peg(
         (beta.shape[0] != se.shape[0])
         or (beta.shape[0] != eqtl.shape[0])
         or (beta.shape[0] != perturb.shape[0])
-        or (beta.shape[0] != inv_ld.shape[0])
+        or (beta.shape[0] != ld.shape[0])
     )
 
     if dim_fail:
@@ -521,12 +558,16 @@ def infer_peg(
     rng_key = random.PRNGKey(seed)
 
     X = jnp.einsum("i,ij->ij", eqtl, perturb)
-    mat_inv_se = jnp.diag(1 / se)
-    inv_dvd = mat_inv_se @ inv_ld @ mat_inv_se
+    inv_se = jnp.diag(1 / se)
+    inv_ld = inv(ld)
+    inv_dvd = inv_se @ inv_ld @ inv_se
 
     gamma, gamma_se = _mrld(beta, X, inv_dvd)
     gamma_p = 2 * t.sf(jnp.abs(gamma / gamma_se), jnp.sum(X != 0,axis=0) - 1)
 
+    gamma2, gamma_se2 = _mrld2(beta, X, se, ld, inv_se, inv_ld, inv_dvd)
+    gamma_p2 = 2 * t.sf(jnp.abs(gamma2 / gamma_se2), jnp.sum(X != 0,axis=0) - 1)
+    
     log.logger.info(f"Starting permutation test with {perm_number} times.")
     
     init_null = null_result(
@@ -540,6 +581,21 @@ def infer_peg(
     _, null_dist = lax.scan(_make_null, init_null, xs=None, length=perm_number)
     gamma_perm_z, gamma_perm_mean, = _get_p(gamma, null_dist)
     
+    init_null2 = null_result2(
+        gwas_beta=beta,
+        eqtl=eqtl,
+        perturb=perturb,
+        d=se,
+        v=ld,
+        inv_d=inv_se,
+        inv_v=inv_ld,
+        inv_dvd=inv_dvd,
+        rng_key=rng_key,
+    )
+
+    _, null_dist2 = lax.scan(_make_null2, init_null2, xs=None, length=perm_number)
+    gamma_perm_z2, gamma_perm_mean2, = _get_p(gamma2, null_dist2)
+    
     result = jnp.column_stack(
         (
             gamma,
@@ -547,6 +603,11 @@ def infer_peg(
             gamma_p,
             gamma_perm_mean,
             gamma_perm_z,
+            gamma2,
+            gamma_se2,
+            gamma_p2,
+            gamma_perm_mean2,
+            gamma_perm_z2,
         )
     )
 

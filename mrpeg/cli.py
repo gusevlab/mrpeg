@@ -90,7 +90,7 @@ def run_peg(args):
             clean_data.se,
             clean_data.eqtl,
             clean_data.perturb,
-            clean_data.inv_ld,
+            clean_data.ld,
             args.perm_number,
             args.seed,
         )
@@ -103,6 +103,11 @@ def run_peg(args):
                 "gamma_p",
                 "gamma_perm_mean",
                 "gamma_perm_z",
+                "gamma2",
+                "gamma_se2",
+                "gamma_p2",
+                "gamma_perm_mean2",
+                "gamma_perm_z2",
             ],
         )
         
