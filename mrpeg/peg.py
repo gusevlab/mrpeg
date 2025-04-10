@@ -423,19 +423,19 @@ def _mrld(y, X, inv_dvd):
     gamma = gamma_num / gamma_dem
 
     epi_hat = y[:, jnp.newaxis] - jnp.einsum("ij,j->ij", X, gamma)
-    df = jnp.sum(X != 0,axis=0) - 1
+    df = y.shape[0] - 1
     sigma_sq_hat = (1 / df) * jnp.einsum("ij,jk,ki->i", epi_hat.T, inv_dvd, epi_hat)
     se = jnp.sqrt(sigma_sq_hat / gamma_dem)
 
     return gamma, se
 
-def _mrld2(y, X, d, v, inv_d, inv_v, inv_dvd):
+def _mrld_alt(y, X, d, v, inv_d, inv_v, inv_dvd):
     gamma_num = jnp.squeeze(jnp.einsum("ij,ja,ab,bk,km->im", X.T, inv_v, inv_d, inv_d, y[:, jnp.newaxis]))
     gamma_dem = jnp.einsum("ij,ja,ab,bc,cd,dk,ki->i", X.T, inv_v, inv_d, v, inv_d, inv_v, X)
     gamma = gamma_num / gamma_dem
 
     epi_hat = y[:, jnp.newaxis] - jnp.einsum("ik,kl,lm,mn,nj,j->ij", d, v, inv_d, inv_v, X, gamma)
-    df = jnp.sum(X != 0,axis=0) - 1
+    df = y.shape[0] - 1
     sigma_sq_hat = (1 / df) * jnp.einsum("ij,jk,ki->i", epi_hat.T, inv_dvd, epi_hat)
     se = jnp.sqrt(sigma_sq_hat / gamma_dem)
 
@@ -467,7 +467,7 @@ def _make_null(result: null_result, empty: Any):
     return carry, gamma
 
 
-class null_result2(NamedTuple):
+class null_result_alt(NamedTuple):
     gwas_beta: Array
     eqtl: Array
     perturb: Array
@@ -479,7 +479,7 @@ class null_result2(NamedTuple):
     rng_key: prng.PRNGKeyArray
     
 
-def _make_null2(result: null_result, empty: Any):
+def _make_null_alt(result: null_result, empty: Any):
     del empty
 
     gwas_beta, eqtl, perturb, d, v, inv_d, inv_v, inv_dvd, rng_key = result
@@ -488,7 +488,7 @@ def _make_null2(result: null_result, empty: Any):
 
     new_perturb = random.permutation(gamma_key, perturb, 0)
     X_perturb = jnp.einsum("i,ij->ij", eqtl, new_perturb)
-    gamma, _ = _mrld2(gwas_beta, X_perturb, d, v, inv_d, inv_v, inv_dvd)
+    gamma, _ = _mrld_alt(gwas_beta, X_perturb, d, v, inv_d, inv_v, inv_dvd)
 
     carry = result._replace(
         rng_key=rng_key,
@@ -511,6 +511,7 @@ def infer_peg(
     ld: ArrayLike,
     perm_number: int = 500,
     seed: int = 12345,
+    alt: bool = False,
 ) -> Array:
     """The main inference function for running SuShiE.
 
@@ -562,41 +563,39 @@ def infer_peg(
     mat_se = jnp.diag(se)
     inv_ld = inv(ld)
     inv_dvd = inv_se @ inv_ld @ inv_se
-
-    gamma, gamma_se = _mrld(beta, X, inv_dvd)
-    gamma_p = 2 * t.sf(jnp.abs(gamma / gamma_se), jnp.sum(X != 0,axis=0) - 1)
-
-    gamma2, gamma_se2 = _mrld2(beta, X, mat_se, ld, inv_se, inv_ld, inv_dvd)
-    gamma_p2 = 2 * t.sf(jnp.abs(gamma2 / gamma_se2), jnp.sum(X != 0,axis=0) - 1)
     
-    log.logger.info(f"Starting permutation test with {perm_number} times.")
+    if not alt:
+        log.logger.info(f"Starting permutation test with {perm_number} times.")
+        gamma, gamma_se = _mrld(beta, X, inv_dvd)
+        init_null = null_result(
+            gwas_beta=beta,
+            eqtl=eqtl,
+            perturb=perturb,
+            inv_dvd=inv_dvd,
+            rng_key=rng_key,
+        )
+        _, null_dist = lax.scan(_make_null, init_null, xs=None, length=perm_number)
+        
+    else:
+        log.logger.info(f"Starting permutation test with {perm_number} times using alternative distribution assumption.")
+        gamma, gamma_se = _mrld_alt(beta, X, mat_se, ld, inv_se, inv_ld, inv_dvd)
+        init_null = null_result_alt(
+            gwas_beta=beta,
+            eqtl=eqtl,
+            perturb=perturb,
+            d=mat_se,
+            v=ld,
+            inv_d=inv_se,
+            inv_v=inv_ld,
+            inv_dvd=inv_dvd,
+            rng_key=rng_key,
+        )
+        _, null_dist = lax.scan(_make_null_alt, init_null, xs=None, length=perm_number)
     
-    init_null = null_result(
-        gwas_beta=beta,
-        eqtl=eqtl,
-        perturb=perturb,
-        inv_dvd=inv_dvd,
-        rng_key=rng_key,
-    )
+    gamma_p = 2 * t.sf(jnp.abs(gamma / gamma_se), beta.shape[0] - 1)
+    
+    gamma_perm_z, gamma_perm_mean = _get_p(gamma, null_dist)
 
-    _, null_dist = lax.scan(_make_null, init_null, xs=None, length=perm_number)
-    gamma_perm_z, gamma_perm_mean, = _get_p(gamma, null_dist)
-    
-    init_null2 = null_result2(
-        gwas_beta=beta,
-        eqtl=eqtl,
-        perturb=perturb,
-        d=mat_se,
-        v=ld,
-        inv_d=inv_se,
-        inv_v=inv_ld,
-        inv_dvd=inv_dvd,
-        rng_key=rng_key,
-    )
-
-    _, null_dist2 = lax.scan(_make_null2, init_null2, xs=None, length=perm_number)
-    gamma_perm_z2, gamma_perm_mean2, = _get_p(gamma2, null_dist2)
-    
     result = jnp.column_stack(
         (
             gamma,
@@ -604,11 +603,6 @@ def infer_peg(
             gamma_p,
             gamma_perm_mean,
             gamma_perm_z,
-            gamma2,
-            gamma_se2,
-            gamma_p2,
-            gamma_perm_mean2,
-            gamma_perm_z2,
         )
     )
 

@@ -93,6 +93,7 @@ def run_peg(args):
             clean_data.ld,
             args.perm_number,
             args.seed,
+            args.alt,
         )
         
         df_infer = pd.DataFrame(
@@ -103,11 +104,6 @@ def run_peg(args):
                 "gamma_p",
                 "gamma_perm_mean",
                 "gamma_perm_z",
-                "gamma2",
-                "gamma_se2",
-                "gamma_p2",
-                "gamma_perm_mean2",
-                "gamma_perm_z2",
             ],
         )
         
@@ -385,6 +381,15 @@ def build_peg_parser(subp):
             " some downstream genes only have a few SNPs (e.g., <10),",
             " and we will not perform inference on these genes.",
             " Default is 10.",
+        ),
+    )
+    
+    peg.add_argument(
+        "--alt",
+        default=False,
+        action="store_true",
+        help=(
+            "Alternative assumptions.",
         ),
     )
 
