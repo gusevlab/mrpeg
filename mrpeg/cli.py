@@ -112,7 +112,8 @@ def run_peg(args):
                 "trait": args.trait,
                 "tissue": f"{args.tissue}",
                 "gene_name": clean_data.gene_names,
-                "n_perturb": clean_data.num_perturb,
+                "n_perturb_top": clean_data.num_perturb,
+                "n_perturb_all": clean_data.beta.shape[0],
                 "n_gwas_sig": clean_data.num_gwas_sig,
             }
         )
