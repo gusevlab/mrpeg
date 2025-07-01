@@ -4,7 +4,6 @@ import warnings
 from typing import Any, List, NamedTuple, Tuple
 
 import jax.numpy as jnp
-import jax.scipy.stats as stats
 import pandas as pd
 from jax import Array, lax
 from jax._src import prng
@@ -31,6 +30,7 @@ __all__ = [
     "_process_raw",
     "_mrld",
     "null_result",
+    "null_result_alt",
     "_make_null",
     "_get_p",
     "infer_peg",
@@ -109,7 +109,9 @@ def _prepare_gwas(gwas: str, gwas_cols: List, keep_ambiguous: bool) -> pd.DataFr
 
     # add a check on SE negative value
     if (df_gwas["SE"] <= 0).any():
-        log.logger.debug(f"GWAS data contains SNP with 0 or negative value of standard error. Will remove these SNPs.")
+        log.logger.debug(
+            "GWAS data contains SNP with 0 or negative value of standard error. Will remove these SNPs."
+        )
         df_gwas = df_gwas[df_gwas.SE > 0]
 
     if not keep_ambiguous:
@@ -119,13 +121,11 @@ def _prepare_gwas(gwas: str, gwas_cols: List, keep_ambiguous: bool) -> pd.DataFr
         df_gwas = df_gwas[~if_ambig].reset_index(drop=True)
 
         if df_gwas.shape[0] == 0:
-            raise ValueError(
-                "All SNPs are ambiguous in GWAS data. Check the source."
-            )
+            raise ValueError("All SNPs are ambiguous in GWAS data. Check the source.")
 
         if del_num != 0:
             log.logger.debug(f"Drop {del_num} ambiguous SNPs in genotype data.")
-    
+
     return df_gwas
 
 
@@ -160,33 +160,44 @@ def _prepare_eqtl(eqtl: str, eqtl_cols: List) -> pd.DataFrame:
     return df_eqtl
 
 
-def _prepare_perturb(perturb: str, top_signal: float) -> Tuple[pd.DataFrame, List]:
+def _prepare_perturb(perturb: str, top_signal: float) -> pd.DataFrame:
     if top_signal < 0 or top_signal > 1:
         raise ValueError(
-                "The percentage of top signals need to greater than 0 and less or euqal to 1."
-            )
-            
+            "The percentage of top signals need to greater than 0 and less or euqal to 1."
+        )
+
     df_perturb = (
         pd.read_csv(perturb, sep="\t")
         .replace([jnp.inf, -jnp.inf], jnp.nan, inplace=False)
         .dropna(inplace=False)
         .reset_index(drop=True)
     )
-    
-    df_perturb = df_perturb.rename(columns={f"{df_perturb.columns[0]}": "GENE"})
-    
-    # remove duplicated perturbed genes
-    df_perturb = df_perturb.drop_duplicates(subset="GENE", keep="first").replace(jnp.nan, 0)
-    
-    # make it long format
-    df_perturb_long = df_perturb.melt(id_vars="GENE", var_name="name", value_name="value")
 
-    threshold = df_perturb_long["value"].abs().quantile(1-top_signal)
-    
-    df_perturb = df_perturb_long[df_perturb_long["value"].abs() >= threshold].groupby("name").filter(lambda x: len(x) >= 10).pivot(index="GENE", columns="name", values="value").reset_index().replace(jnp.nan, 0)
-    
+    df_perturb = df_perturb.rename(columns={f"{df_perturb.columns[0]}": "GENE"})
+
+    # remove duplicated perturbed genes
+    df_perturb = df_perturb.drop_duplicates(subset="GENE", keep="first").replace(
+        jnp.nan, 0
+    )
+
+    # make it long format
+    df_perturb_long = df_perturb.melt(
+        id_vars="GENE", var_name="name", value_name="value"
+    )
+
+    threshold = df_perturb_long["value"].abs().quantile(1 - top_signal)
+
+    df_perturb = (
+        df_perturb_long[df_perturb_long["value"].abs() >= threshold]
+        .groupby("name")
+        .filter(lambda x: len(x) >= 10)
+        .pivot(index="GENE", columns="name", values="value")
+        .reset_index()
+        .replace(jnp.nan, 0)
+    )
+
     ds_genes = df_perturb.columns[1 : df_perturb.shape[1]].tolist()
-        
+
     log.logger.info(
         f"Perturb matrix contains {df_perturb.shape[0]} perturbed genes and {len(ds_genes)} downstream genes."
     )
@@ -212,6 +223,7 @@ def _allele_check(
     (wrong_idx,) = jnp.where((correct + flipped) == 0)
 
     return correct_idx, flipped_idx, wrong_idx
+
 
 def _process_raw(
     gwas: str,
@@ -240,10 +252,10 @@ def _process_raw(
         .sort_values(by=["CHR", "SNP"])
         .reset_index(drop=True)
     )
-    
+
     num_shared = len(df_wk.GENE.unique())
     chrs = df_wk["CHR"].unique()
-        
+
     if num_shared <= 2:
         raise ValueError(
             f"Only {num_shared} shared genes between eQTL and perturb data. Check your input."
@@ -274,8 +286,12 @@ def _process_raw(
         bim.columns = ["CHR", "SNP", "CM", "BP", "A0_ref", "A1_ref", "i"]
 
         bim.CHR = bim.CHR.astype(int)
-        df_snp = df_wk.merge(bim, how="inner", on=["CHR", "SNP"]).merge(df_gwas, how="inner", on=["CHR", "SNP"]).reset_index(drop=True)
-        
+        df_snp = (
+            df_wk.merge(bim, how="inner", on=["CHR", "SNP"])
+            .merge(df_gwas, how="inner", on=["CHR", "SNP"])
+            .reset_index(drop=True)
+        )
+
         if df_snp.shape[0] == 0:
             log.logger.debug(
                 f"No overlap SNPs between GWAS, eQTL, and reference data on chromosome {chrs[idx]}."
@@ -289,7 +305,7 @@ def _process_raw(
             df_snp["A1_gwas"].values,
             df_snp["A0_gwas"].values,
         )
-        
+
         if len(wrong_idx) != 0:
             df_snp = df_snp.drop(wrong_idx, axis=0).reset_index(drop=True)
             if df_snp.shape[0] == 0:
@@ -297,15 +313,15 @@ def _process_raw(
                     f"All SNPs do not match between reference and GWAS data on chromosome {chrs[idx]}."
                 )
                 continue
-        
-        # drop wrong SNPs between ref and eqtl data 
+
+        # drop wrong SNPs between ref and eqtl data
         _, _, wrong_idx = _allele_check(
             df_snp["A1_ref"].values,
             df_snp["A0_ref"].values,
             df_snp["A1_eqtl"].values,
             df_snp["A0_eqtl"].values,
         )
-        
+
         if len(wrong_idx) != 0:
             df_snp = df_snp.drop(wrong_idx, axis=0).reset_index(drop=True)
             if df_snp.shape[0] == 0:
@@ -313,7 +329,7 @@ def _process_raw(
                     f"All SNPs do not match between reference and eQTL data on chromosome {chrs[idx]}."
                 )
                 continue
-            
+
         # flip alleles between ref and GWAS
         _, flip_idx, _ = _allele_check(
             df_snp["A1_ref"].values,
@@ -323,8 +339,10 @@ def _process_raw(
         )
         if len(flip_idx) != 0:
             df_snp.loc[flip_idx, "BETA"] = -1 * df_snp.iloc[flip_idx, :]["BETA"].values
-            log.logger.debug(f"Flip {len(flip_idx)} SNPs between reference and GWAS data on chromosome {chrs[idx]}.")
-        
+            log.logger.debug(
+                f"Flip {len(flip_idx)} SNPs between reference and GWAS data on chromosome {chrs[idx]}."
+            )
+
         # flip alleles between ref and eQTL
         _, flip_idx, _ = _allele_check(
             df_snp["A1_ref"].values,
@@ -332,16 +350,28 @@ def _process_raw(
             df_snp["A1_eqtl"].values,
             df_snp["A0_eqtl"].values,
         )
-        
+
         if len(flip_idx) != 0:
-            df_snp.loc[flip_idx, "Z_eqtl"] = -1 * df_snp.iloc[flip_idx, :]["Z_eqtl"].values
-            log.logger.debug(f"Flip {len(flip_idx)} SNPs between reference and eQTL data on chromosome {chrs[idx]}.")
-        
+            df_snp.loc[flip_idx, "Z_eqtl"] = (
+                -1 * df_snp.iloc[flip_idx, :]["Z_eqtl"].values
+            )
+            log.logger.debug(
+                f"Flip {len(flip_idx)} SNPs between reference and eQTL data on chromosome {chrs[idx]}."
+            )
+
         # we have cases that same SNPs are the top eQTL for multiple genes
         # we make SNP only available to one gene
-        df_snp = df_snp.groupby("SNP").apply(lambda x: x.loc[abs(x["Z_eqtl"]).idxmax()]).reset_index(drop=True)
-        
-        df_snp = df_snp.groupby("GENE").apply(lambda x: x.loc[abs(x["Z_eqtl"]).idxmax()]).reset_index(drop=True)
+        df_snp = (
+            df_snp.groupby("SNP")
+            .apply(lambda x: x.loc[abs(x["Z_eqtl"]).idxmax()])
+            .reset_index(drop=True)
+        )
+
+        df_snp = (
+            df_snp.groupby("GENE")
+            .apply(lambda x: x.loc[abs(x["Z_eqtl"]).idxmax()])
+            .reset_index(drop=True)
+        )
 
         X = bed.compute().T[:, df_snp.i]
         X -= jnp.mean(X, axis=0)
@@ -354,70 +384,97 @@ def _process_raw(
             tmp_pert = df_snp[["GENE"]].merge(df_perturb, how="left", on="GENE")
             tmp_pert["mean_value"] = tmp_pert.iloc[:, 1:].abs().mean(axis=1)
             tmp_pert = tmp_pert[["GENE", "mean_value"]]
-            
-            df_snp = df_snp.merge(tmp_pert, how="left", on="GENE").sort_values(by="mean_value", key=abs, ascending=False).reset_index(drop=False)
+
+            df_snp = (
+                df_snp.merge(tmp_pert, how="left", on="GENE")
+                .sort_values(by="mean_value", key=abs, ascending=False)
+                .reset_index(drop=False)
+            )
             snp_delete = []
             for jdx in range(df_snp.shape[0]):
                 focus_snp = df_snp.iloc[[jdx], :]
-        
+
                 if focus_snp.SNP.values in snp_delete:
                     continue
-        
-                other_snp = df_snp.copy().drop(index = jdx)
+
+                other_snp = df_snp.copy().drop(index=jdx)
                 focus_BP = focus_snp["BP"].values[0]
-                nearby_snps = other_snp[(other_snp["BP"] >= (focus_BP - 5e5)) & (other_snp["BP"] <= (focus_BP + 5e5))]
-        
-                if nearby_snps.shape[0] == 0:    
+                nearby_snps = other_snp[
+                    (other_snp["BP"] >= (focus_BP - 5e5))
+                    & (other_snp["BP"] <= (focus_BP + 5e5))
+                ]
+
+                if nearby_snps.shape[0] == 0:
                     continue
-        
+
                 for kdx in range(nearby_snps.shape[0]):
-                    if nearby_snps.iloc[kdx,:].SNP in snp_delete:
+                    if nearby_snps.iloc[kdx, :].SNP in snp_delete:
                         continue
-                    tmp_corr = tmp_ld[focus_snp.index.values, nearby_snps.index.values[kdx]]
+                    tmp_corr = tmp_ld[
+                        focus_snp.index.values, nearby_snps.index.values[kdx]
+                    ]
                     if jnp.abs(tmp_corr) > corr_threshold:
-                        snp_delete.append(nearby_snps.iloc[kdx,:].SNP)
+                        snp_delete.append(nearby_snps.iloc[kdx, :].SNP)
             df_snp = df_snp[~df_snp.SNP.isin(snp_delete)]
             keep_snps.append(df_snp[["CHR", "SNP", "BETA", "SE", "Z_eqtl", "GENE"]])
-    
-    df_wk = pd.concat(keep_snps).reset_index(drop=True).reset_index().merge(df_perturb, how="left", on="GENE")
 
-    df_wk_pert = df_wk.drop(["index", "CHR", "SNP", "BETA", "SE", "Z_eqtl"], axis=1).melt(id_vars="GENE", var_name="name", value_name="value")
-    df_wk_pert = df_wk_pert[df_wk_pert["value"] != 0].groupby("name").filter(lambda x: len(x) >= min_snps).pivot(index="GENE", columns="name", values="value")
-    df_wk = df_wk[["index", "CHR", "SNP", "BETA", "SE", "Z_eqtl", "GENE"]].merge(df_wk_pert.fillna(0), how="inner", on="GENE").copy()
-    
+    df_wk = (
+        pd.concat(keep_snps)
+        .reset_index(drop=True)
+        .reset_index()
+        .merge(df_perturb, how="left", on="GENE")
+    )
+
+    df_wk_pert = df_wk.drop(
+        ["index", "CHR", "SNP", "BETA", "SE", "Z_eqtl"], axis=1
+    ).melt(id_vars="GENE", var_name="name", value_name="value")
+    df_wk_pert = (
+        df_wk_pert[df_wk_pert["value"] != 0]
+        .groupby("name")
+        .filter(lambda x: len(x) >= min_snps)
+        .pivot(index="GENE", columns="name", values="value")
+    )
+    df_wk = (
+        df_wk[["index", "CHR", "SNP", "BETA", "SE", "Z_eqtl", "GENE"]]
+        .merge(df_wk_pert.fillna(0), how="inner", on="GENE")
+        .copy()
+    )
+
     if mr_ld:
         ld = block_diag(*ld)
-        ld_subset = ld[df_wk["index"].values,:][:,df_wk["index"].values]
+        ld_new = jnp.array(ld)
+        ld_subset = ld_new[df_wk["index"].values, :][:, df_wk["index"].values]
     else:
         ld_subset = jnp.eye(df_wk.shape[0])
 
     ds_genes = df_wk.columns[7:].tolist()
 
     log.logger.info(
-            f"Successfully prepared {df_wk.shape[0]} perturbed genes."
-            + f" Start running Mr PEG on {len(ds_genes)} downstream genes."
-        )
-        
-    gwas_hits = jnp.array((df_wk.BETA/df_wk.SE).abs() > 5.45) * 1
-    sig_perturb = jnp.array(df_wk.iloc[:,7:] != 0) * 1
+        f"Successfully prepared {df_wk.shape[0]} perturbed genes."
+        + f" Start running Mr PEG on {len(ds_genes)} downstream genes."
+    )
+
+    gwas_hits = jnp.array((df_wk.BETA / df_wk.SE).abs() > 5.45) * 1
+    sig_perturb = jnp.array(df_wk.iloc[:, 7:] != 0) * 1
     gwas_hits_perturb = jnp.einsum("i,ik->k", gwas_hits, sig_perturb)
-        
+
     result = CleanData(
         beta=jnp.array(df_wk.BETA),
         se=df_wk.SE.values,
         eqtl=jnp.array(df_wk.Z_eqtl),
-        perturb=jnp.array(df_wk.iloc[:,7:]),
+        perturb=jnp.array(df_wk.iloc[:, 7:]),
         ld=jnp.array(ld_subset),
         gene_names=ds_genes,
-        num_perturb=jnp.sum(sig_perturb,axis=0),
+        num_perturb=jnp.sum(sig_perturb, axis=0),
         num_gwas_sig=gwas_hits_perturb,
-        metadata=df_wk
+        metadata=df_wk,
     )
-    
+
     return result
 
 
 def _mrld(y, X, inv_dvd):
+
     gamma_num = jnp.squeeze(jnp.einsum("ij,jk,km->im", X.T, inv_dvd, y[:, jnp.newaxis]))
     gamma_dem = jnp.einsum("ij,jk,ki->i", X.T, inv_dvd, X)
     gamma = gamma_num / gamma_dem
@@ -429,17 +486,25 @@ def _mrld(y, X, inv_dvd):
 
     return gamma, se
 
+
 def _mrld_alt(y, X, d, v, inv_d, inv_v, inv_dvd):
-    gamma_num = jnp.squeeze(jnp.einsum("ij,ja,ab,bk,km->im", X.T, inv_v, inv_d, inv_d, y[:, jnp.newaxis]))
-    gamma_dem = jnp.einsum("ij,ja,ab,bc,cd,dk,ki->i", X.T, inv_v, inv_d, v, inv_d, inv_v, X)
+    gamma_num = jnp.squeeze(
+        jnp.einsum("ij,ja,ab,bk,km->im", X.T, inv_v, inv_d, inv_d, y[:, jnp.newaxis])
+    )
+    gamma_dem = jnp.einsum(
+        "ij,ja,ab,bc,cd,dk,ki->i", X.T, inv_v, inv_d, v, inv_d, inv_v, X
+    )
     gamma = gamma_num / gamma_dem
 
-    epi_hat = y[:, jnp.newaxis] - jnp.einsum("ik,kl,lm,mn,nj,j->ij", d, v, inv_d, inv_v, X, gamma)
+    epi_hat = y[:, jnp.newaxis] - jnp.einsum(
+        "ik,kl,lm,mn,nj,j->ij", d, v, inv_d, inv_v, X, gamma
+    )
     df = y.shape[0] - 1
     sigma_sq_hat = (1 / df) * jnp.einsum("ij,jk,ki->i", epi_hat.T, inv_dvd, epi_hat)
     se = jnp.sqrt(sigma_sq_hat / gamma_dem)
 
     return gamma, se
+
 
 class null_result(NamedTuple):
     gwas_beta: Array
@@ -447,7 +512,7 @@ class null_result(NamedTuple):
     perturb: Array
     inv_dvd: Array
     rng_key: prng.PRNGKeyArray
-    
+
 
 def _make_null(result: null_result, empty: Any):
     del empty
@@ -477,9 +542,9 @@ class null_result_alt(NamedTuple):
     inv_v: Array
     inv_dvd: Array
     rng_key: prng.PRNGKeyArray
-    
 
-def _make_null_alt(result: null_result, empty: Any):
+
+def _make_null_alt(result: null_result_alt, empty: Any):
     del empty
 
     gwas_beta, eqtl, perturb, d, v, inv_d, inv_v, inv_dvd, rng_key = result
@@ -495,6 +560,7 @@ def _make_null_alt(result: null_result, empty: Any):
     )
 
     return carry, gamma
+
 
 def _get_p(gamma, null):
     null_mean = jnp.mean(null, axis=0)
@@ -555,7 +621,7 @@ def infer_peg(
         raise ValueError(
             "The dimension of GWAS, eQTL, perturb, and the inverse of LD do not match."
         )
-    
+
     rng_key = random.PRNGKey(seed)
 
     X = jnp.einsum("i,ij->ij", eqtl, perturb)
@@ -563,7 +629,7 @@ def infer_peg(
     mat_se = jnp.diag(se)
     inv_ld = inv(ld)
     inv_dvd = inv_se @ inv_ld @ inv_se
-    
+
     if not alt:
         log.logger.info(f"Starting permutation test with {perm_number} times.")
         gamma, gamma_se = _mrld(beta, X, inv_dvd)
@@ -575,11 +641,13 @@ def infer_peg(
             rng_key=rng_key,
         )
         _, null_dist = lax.scan(_make_null, init_null, xs=None, length=perm_number)
-        
+
     else:
-        log.logger.info(f"Starting permutation test with {perm_number} times using alternative distribution assumption.")
+        log.logger.info(
+            f"Starting permutation test with {perm_number} times using alternative distribution assumption."
+        )
         gamma, gamma_se = _mrld_alt(beta, X, mat_se, ld, inv_se, inv_ld, inv_dvd)
-        init_null = null_result_alt(
+        init_null_alt = null_result_alt(
             gwas_beta=beta,
             eqtl=eqtl,
             perturb=perturb,
@@ -590,10 +658,12 @@ def infer_peg(
             inv_dvd=inv_dvd,
             rng_key=rng_key,
         )
-        _, null_dist = lax.scan(_make_null_alt, init_null, xs=None, length=perm_number)
-    
+        _, null_dist = lax.scan(
+            _make_null_alt, init_null_alt, xs=None, length=perm_number
+        )
+
     gamma_p = 2 * t.sf(jnp.abs(gamma / gamma_se), beta.shape[0] - 1)
-    
+
     gamma_perm_z, gamma_perm_mean = _get_p(gamma, null_dist)
 
     result = jnp.column_stack(

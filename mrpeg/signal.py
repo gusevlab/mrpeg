@@ -86,7 +86,9 @@ def _process_gwas(gwas, gwas_cols, n_chr, threshold):
     df_gwas = df_gwas.dropna()
 
     if (df_gwas["SE"] <= 0).any():
-        log.logger.info(f"GWAS data contains SNP with 0 or negative value of SE. Will remove these SNPs.")
+        log.logger.info(
+            "GWAS data contains SNP with 0 or negative value of SE. Will remove these SNPs."
+        )
         df_gwas = df_gwas[df_gwas.SE > 0]
 
     df_gwas[["CHR", "BP"]] = df_gwas[["CHR", "BP"]].astype(int)

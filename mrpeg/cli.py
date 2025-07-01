@@ -9,7 +9,6 @@ import sys
 import warnings
 from importlib import metadata
 
-import numpy as np
 import pandas as pd
 
 with warnings.catch_warnings():
@@ -84,7 +83,7 @@ def run_peg(args):
             args.corr_threshold,
             args.min_snps,
         )
-        
+
         infer_result = peg.infer_peg(
             clean_data.beta,
             clean_data.se,
@@ -95,7 +94,7 @@ def run_peg(args):
             args.seed,
             args.alt,
         )
-        
+
         df_infer = pd.DataFrame(
             infer_result,
             columns=[
@@ -106,7 +105,7 @@ def run_peg(args):
                 "gamma_perm_z",
             ],
         )
-        
+
         df_result = pd.DataFrame(
             {
                 "trait": args.trait,
@@ -214,7 +213,9 @@ def run_signal(args):
             args.ref, args.ref_cols, args.chr, args.keep, args.window
         )
 
-        anno_full, anno_filter = signal._annot_tree(df_gwas, df_ref, args.split, args.snps_anno)
+        anno_full, anno_filter = signal._annot_tree(
+            df_gwas, df_ref, args.split, args.snps_anno
+        )
 
         signal_summary = signal._summarize(anno_filter, df_ref)
 
@@ -269,9 +270,7 @@ def build_peg_parser(subp):
         "--eqtl",
         type=str,
         required=True,
-        help=(
-            "Path to eQTL data file (tsv format, compressed or uncompressed).",
-        ),
+        help=("Path to eQTL data file (tsv format, compressed or uncompressed).",),
     )
 
     peg.add_argument(
@@ -281,7 +280,7 @@ def build_peg_parser(subp):
         help=(
             "Path to Perturb-seq data file (tsv format, compressed or uncompressed).",
             "The rows need to be the upstream genes (Perturbed genes),",
-            " and columns are the downstream genes."
+            " and columns are the downstream genes.",
         ),
     )
 
@@ -289,7 +288,9 @@ def build_peg_parser(subp):
         "--ref-geno",
         default=None,
         type=str,
-        help=("Path to reference data to compute the LD matrix. Use '*' as placeholder for chromsome number",),
+        help=(
+            "Path to reference data to compute the LD matrix. Use '*' as placeholder for chromsome number",
+        ),
     )
 
     peg.add_argument(
@@ -313,34 +314,28 @@ def build_peg_parser(subp):
             " chromosome, SNP ID, effect allele, non-effect allele, Z-score, and gene ID.",
         ),
     )
-    
+
     peg.add_argument(
         "--mr-ld",
         default=False,
         action="store_true",
-        help=(
-            "Indicator to perform LD-adjusted version of mendelian randomization."
-        ),
+        help=("Indicator to perform LD-adjusted version of mendelian randomization."),
     )
-    
+
     peg.add_argument(
         "--corr-threshold",
         default=0.1,
         type=float,
-        help=(
-            "Indicator to perform LD-adjusted version of mendelian randomization."
-        ),
+        help=("Indicator to perform LD-adjusted version of mendelian randomization."),
     )
-    
+
     peg.add_argument(
         "--min-snps",
         default=10,
         type=float,
-        help=(
-            "Indicator to perform LD-adjusted version of mendelian randomization."
-        ),
+        help=("Indicator to perform LD-adjusted version of mendelian randomization."),
     )
-    
+
     peg.add_argument(
         "--keep-ambiguous",
         default=False,
@@ -358,7 +353,7 @@ def build_peg_parser(subp):
             "The number of permutation to construct null distribution of effects. The default is 500.",
         ),
     )
-    
+
     peg.add_argument(
         "--top-signal",
         default=0.01,
@@ -367,11 +362,10 @@ def build_peg_parser(subp):
             "The top percentage of Perturb-seq effect pairs used in the inference.",
             " If the Perturb-seq effect matrix is 500 upstream genes by 200 downstream genes,",
             " only the top 1% of the effect pairs (500*200*0.01) will be used in the inference,",
-            " and the rest entries will be zero."
-            " Default is 0.01 (1%). ",
+            " and the rest entries will be zero." " Default is 0.01 (1%). ",
         ),
     )
-    
+
     peg.add_argument(
         "--min_snps",
         default=10,
@@ -384,14 +378,12 @@ def build_peg_parser(subp):
             " Default is 10.",
         ),
     )
-    
+
     peg.add_argument(
         "--alt",
         default=False,
         action="store_true",
-        help=(
-            "Alternative assumptions.",
-        ),
+        help=("Alternative assumptions.",),
     )
 
     peg.add_argument(
@@ -411,7 +403,7 @@ def build_peg_parser(subp):
             "Trait, name of the phenotype for better indexing in post-hoc analysis. Default is 'Trait'.",
         ),
     )
-    
+
     peg.add_argument(
         "--tissue",
         default="Tissue",
@@ -516,7 +508,7 @@ def build_closest_parser(subp):
             " chromosome, SNP ID, effect allele, non-effect allele, effect size, and standard error.",
         ),
     )
-    
+
     closest.add_argument(
         "--ref_cols",
         nargs=4,
@@ -536,7 +528,7 @@ def build_closest_parser(subp):
             "Path to a file that includes the genes users want to find closest GWAS genes from.",
             " For example, users sometimes want to find closest GWAS genes for a list of genes,",
             " instead of all genes in the reference file.",
-            ),
+        ),
     )
 
     closest.add_argument(
@@ -566,7 +558,7 @@ def build_closest_parser(subp):
             "Trait, tissue, gene name of the phenotype for better indexing in post-hoc analysis. Default is 'Trait'.",
         ),
     )
-    
+
     closest.add_argument(
         "--nearby",
         default=False,

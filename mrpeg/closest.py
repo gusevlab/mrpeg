@@ -75,7 +75,9 @@ def _get_max_gwas(gwas, gwas_cols, window, threshold) -> pd.DataFrame:
     df_gwas = df_gwas.dropna()
 
     if (df_gwas["SE"] <= 0).any():
-        log.logger.info(f"GWAS data contains SNP with 0 or negative value of standard error. Will remove these SNPs.")
+        log.logger.info(
+            "GWAS data contains SNP with 0 or negative value of standard error. Will remove these SNPs."
+        )
         df_gwas = df_gwas[df_gwas.SE > 0]
 
     df_gwas[["CHR", "BP"]] = df_gwas[["CHR", "BP"]].astype(int)
@@ -246,6 +248,7 @@ def _find_closest(sig_gwas, pot_genes) -> pd.DataFrame:
     )
     return closest
 
+
 def _find_nearby(sig_gwas, pot_genes, window) -> pd.DataFrame:
     nearby = []
     half_window = int(window * 1000 / 2)
@@ -253,15 +256,17 @@ def _find_nearby(sig_gwas, pot_genes, window) -> pd.DataFrame:
         tmp_snp = sig_gwas.iloc[
             [idx],
         ]
-        
+
         P0 = np.maximum(tmp_snp.BP - half_window, 0)
         P1 = tmp_snp.BP + half_window
-    
+
         tmp_pot = pot_genes[pot_genes.CHR.values == tmp_snp.CHR.values].reset_index(
             drop=True
         )
 
-        overlap_pot = tmp_pot[(tmp_pot["TSS"] <= int(P1)) & (tmp_pot["TES"] >= int(P0))].copy()
+        overlap_pot = tmp_pot[
+            (tmp_pot["TSS"] <= int(P1)) & (tmp_pot["TES"] >= int(P0))
+        ].copy()
         overlap_pot["snp"] = tmp_snp.SNP.values[0]
         nearby.append(overlap_pot)
 
