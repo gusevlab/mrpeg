@@ -1,8 +1,8 @@
-======
-SuShiE
-======
+=======
+Mr. PEG
+=======
 
-Python software to fine-map causal SNPs, compute prediction weights, and infer effect size correlation across multiple ancestries. **The manuscript is in progress.**
+Python software to perform association test integrating Perturb-seq, cis-eQTL, and GWAS summary data to identify mediating genes for complex traits. **The manuscript is in progress.**
 
 Contents
 ========
@@ -22,9 +22,9 @@ Contents
    :caption: API Reference
 
    api/cli.rst
-   api/infer.rst
-   api/io.rst
-   api/utils.rst
+   api/peg.rst
+   api/closest.rst
+   api/signal.rst
 
 .. toctree::
    :maxdepth: 2

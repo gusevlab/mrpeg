@@ -72,8 +72,8 @@ source_suffix = [".rst", ".md"]
 master_doc = "index"
 
 # General information about the project.
-project = "SuShiE"
-copyright = "2023, MancusoLab"
+project = "MrPEG"
+copyright = "2025, Gusev Lab"
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -187,7 +187,7 @@ html_theme = "sphinx_immaterial"
 html_static_path = ["_static"]
 html_css_files = ["extra_css.css"]
 html_last_updated_fmt = ""
-html_title = "SuShiE"
+html_title = "Mr. PEG"
 html_favicon = "_static/images/favicon.ico"
 html_logo = "_static/images/dna.png"
 

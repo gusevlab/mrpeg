@@ -103,6 +103,7 @@ def run_peg(args):
                 "gamma_p",
                 "gamma_perm_mean",
                 "gamma_perm_z",
+                "gamma_null_p",
             ],
         )
 
@@ -347,7 +348,7 @@ def build_peg_parser(subp):
 
     peg.add_argument(
         "--perm-number",
-        default=500,
+        default=1000,
         type=int,
         help=(
             "The number of permutation to construct null distribution of effects. The default is 500.",

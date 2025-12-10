@@ -666,6 +666,16 @@ def infer_peg(
 
     gamma_perm_z, gamma_perm_mean = _get_p(gamma, null_dist)
 
+    # compute the null distribution p value based on permutation
+    gamma_null_p = jnp.sum(gamma <= null_dist, axis=0) / (perm_number + 1)
+
+    # for the p values greater than 0.5, we use the upper tail
+    gamma_null_p = jnp.where(
+        gamma_null_p > 0.5,
+        1 - jnp.sum(gamma >= null_dist, axis=0) / (perm_number + 1),
+        gamma_null_p,
+    )
+
     result = jnp.column_stack(
         (
             gamma,
@@ -673,6 +683,7 @@ def infer_peg(
             gamma_p,
             gamma_perm_mean,
             gamma_perm_z,
+            gamma_null_p,
         )
     )
 

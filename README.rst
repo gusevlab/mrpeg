@@ -20,15 +20,15 @@
 
 .. image:: https://img.shields.io/badge/Docs-Available-brightgreen
         :alt: Documentation-webpage
-        :target: https://mancusolab.github.io/sushie/
+        :target: https://gusevlab.github.io/mrpeg/
 
-.. image:: https://img.shields.io/pypi/v/sushie.svg
+.. image:: https://img.shields.io/pypi/v/mrpeg.svg
            :alt: PyPI-Server
            :target: https://pypi.org/project/sushie/
 
-.. image:: https://img.shields.io/github/stars/mancusolab/sushie?style=social
+.. image:: https://img.shields.io/github/stars/gusevlab/mrpeg?style=social
         :alt: Github
-        :target: https://github.com/mancusolab/sushie
+        :target: https://github.com/gusevlab/mrpeg
 
 .. image:: https://img.shields.io/badge/License-MIT-yellow.svg
     :alt: License
@@ -39,17 +39,12 @@
     :target: https://pyscaffold.org/
 
 
-======
-Mr PEG
-======
-Mr PEG is a Python software to identify putative causal gene sets of complex traits with Mendelian Randomization (Mr) integrating  Perturb-Seq (P), eQTL (E), and GWAS (G) data. **The manuscript is in progress.**
+=======
+Mr. PEG
+=======
+Mr. PEG is a Python software to perform association test integrating Perturb-Seq (P), cis-eQTL (E), and GWAS (G) summary data to identify mediating genes for complex traits. **The manuscript is in progress.**
 
-.. code:: diff
-
-    - We detest usage of our software or scientific outcome to promote any discrimination.
-
-Check `here <https://mancusolab.github.io/sushie/>`_ for full documentation.
-
+Check `here <https://gusevlab.github.io/mrpeg/>`_ for full documentation.
 
 |Installation|_ | |Example|_ | |Notes|_ | |Version|_ | |Support|_ | |Other Software|_
 
@@ -80,15 +75,24 @@ Before installation, we recommend to create a new environment using `conda <http
 
 Get Started with Example
 ========================
-TBD
+Mr. PEG software is very easy to use. It provides three functions:
+
+1. **peg**: Perform the association test using Perturb-Seq, cis-eQTL, and GWAS summary data.
+2. **closest**: Find the GWAS closest gene given a trait (i.e., the closest gene to a significant locus).
+3. **signal**: Compute the summary data of GWAS Z score (i.e., mean, median, etc.) given a genomic region.
 
 .. _Notes:
 .. |Notes| replace:: **Notes**
 
 Notes
 =====
-
-TBD
+-   Mr. PEG uses [JAX](https://github.com/google/jax) with [Just In
+    Time](https://jax.readthedocs.io/en/latest/jax-101/02-jitting.html)
+    compilation to achieve high-speed computation. However, there are
+    some [issues](https://github.com/google/jax/issues/5501) for JAX
+    with Mac M1 chip. To solve this, users need to initiate conda using
+    [miniforge](https://github.com/conda-forge/miniforge), and then
+    install SuShiE using `pip` in the desired environment.
 
 .. _Version:
 .. |Version| replace:: **Version**
@@ -111,8 +115,8 @@ Version History
 Support
 ========
 
-Please report any bugs or feature requests in the `Issue Tracker <https://github.com/mancusolab/sushie/issues>`_. If users have any
-questions or comments, please contact Zeyun Lu (zeyunlu@usc.edu) and Sasha Gusev (alexander_gusev@dfci.harvard.edu).
+Please report any bugs or feature requests in the `Issue Tracker <https://github.com/gusevlab/mrpeg/issues>`_. If users have any
+questions or comments, please contact Zeyun Lu (zeyun_lu@dfci.harvard.edu) and Sasha Gusev (alexander_gusev@dfci.harvard.edu).
 
 .. _OtherSoftware:
 .. |Other Software| replace:: **Other Software**
@@ -122,7 +126,7 @@ Other Software
 
 Feel free to use other software developed by `Gusev Lab <http://gusevlab.org///>`_:
 
-TBD
+[FUSION]() a suite of tools for performing transcriptome-wide and regulome-wide association studies (TWAS and RWAS).
 
 ---------------------
 

@@ -1,10 +1,10 @@
 .. _conduct:
 
 ===========================================
-GusevLab Open Source Community Guidelines
+Gusev Lab Open Source Community Guidelines
 ===========================================
 
-At MancusoLab, we recognize and celebrate the creativity and collaboration of open
+At Gusev Lab, we recognize and celebrate the creativity and collaboration of open
 source contributors and the diversity of skills, experiences, cultures, and
 opinions they bring to the projects and communities they participate in.
 
@@ -39,11 +39,11 @@ environment where participants feel welcome and safe.
 
 Reporting problems
 ------------------
-Some MancusoLab open source projects may adopt a project-specific code of conduct.
-In those cases, a MancusoLab trainee (or Nick) will be identified as the Project Steward,
+Some Gusev Lab open source projects may adopt a project-specific code of conduct.
+In those cases, a Gusev Lab trainee (or Nick) will be identified as the Project Steward,
 who will receive and handle reports of code of conduct violations. In the event
 that a project hasn’t identified a Project Steward, you can report problems by
-emailing Nicholas.Mancuso@med.usc.edu.
+emailing alexander_gusev@dfci.harvard.edu.
 
 We will investigate every complaint, but you may not receive a direct response.
 We will use our discretion in determining when and how to follow up on reported
