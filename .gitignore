@@ -6,6 +6,8 @@ __pycache__/
 .vscode
 *.metadata2.mmm
 
+tmp_results_*
+
 *.sh
 *.tsv
 *.db

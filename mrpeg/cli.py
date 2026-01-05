@@ -320,21 +320,18 @@ def build_peg_parser(subp):
         "--mr-ld",
         default=False,
         action="store_true",
-        help=("Indicator to perform LD-adjusted version of mendelian randomization."),
+        help=(
+            "Indicator to perform LD-adjusted version of mendelian randomization. Default is false (do not perform)."
+        ),
     )
 
     peg.add_argument(
         "--corr-threshold",
         default=0.1,
         type=float,
-        help=("Indicator to perform LD-adjusted version of mendelian randomization."),
-    )
-
-    peg.add_argument(
-        "--min-snps",
-        default=10,
-        type=float,
-        help=("Indicator to perform LD-adjusted version of mendelian randomization."),
+        help=(
+            "The threshold used to determine whether SNPs are in linkage disequilibrium for pruning"
+        ),
     )
 
     peg.add_argument(
@@ -351,7 +348,7 @@ def build_peg_parser(subp):
         default=1000,
         type=int,
         help=(
-            "The number of permutation to construct null distribution of effects. The default is 500.",
+            "The number of permutation to construct null distribution of effects. The default is 1000.",
         ),
     )
 
@@ -368,7 +365,7 @@ def build_peg_parser(subp):
     )
 
     peg.add_argument(
-        "--min_snps",
+        "--min-snps",
         default=10,
         type=int,
         help=(
@@ -384,7 +381,9 @@ def build_peg_parser(subp):
         "--alt",
         default=False,
         action="store_true",
-        help=("Alternative assumptions.",),
+        help=(
+            "Alternative assumptions. In practice, we found it usually gives the same results.",
+        ),
     )
 
     peg.add_argument(
@@ -418,7 +417,7 @@ def build_peg_parser(subp):
         "--quiet",
         default=False,
         action="store_true",
-        help="Indicator to not print message to console. Default is False. Specify --numpy will store 'True' value.",
+        help="Indicator to not print message to console. Default is False. Specify --quiet will store 'True' value.",
     )
 
     peg.add_argument(
@@ -427,7 +426,7 @@ def build_peg_parser(subp):
         action="store_true",
         help=(
             "Indicator to include debug information in the log. Default is False.",
-            " Specify --numpy will store 'True' value.",
+            " Specify --verbose will store 'True' value.",
         ),
     )
 
@@ -500,7 +499,7 @@ def build_closest_parser(subp):
     )
 
     closest.add_argument(
-        "--gwas_cols",
+        "--gwas-cols",
         nargs=5,
         default=["CHR", "SNP", "BP", "BETA", "SE"],
         type=str,
@@ -511,7 +510,7 @@ def build_closest_parser(subp):
     )
 
     closest.add_argument(
-        "--ref_cols",
+        "--ref-cols",
         nargs=4,
         default=["CHR", "P0", "P1", "ANNO"],
         type=str,
@@ -537,8 +536,7 @@ def build_closest_parser(subp):
         default=1000,
         type=int,
         help=(
-            "Genomic window .",
-            " Default is 5. Larger number may cause slow inference.",
+            "Genomic window (in kb) around GWAS-significant SNPs used to define overlapping regions.",
         ),
     )
 
@@ -546,17 +544,14 @@ def build_closest_parser(subp):
         "--threshold",
         default=5e-8,
         type=float,
-        help=(
-            "Integer number of shared effects pre-specified.",
-            " Default is 5. Larger number may cause slow inference.",
-        ),
+        help=("P value threshold to define GWAS SNPs.",),
     )
 
     closest.add_argument(
         "--trait",
         default="Trait",
         help=(
-            "Trait, tissue, gene name of the phenotype for better indexing in post-hoc analysis. Default is 'Trait'.",
+            "Trait name for better indexing in post-hoc analysis. Default is 'Trait'.",
         ),
     )
 
@@ -565,7 +560,7 @@ def build_closest_parser(subp):
         default=False,
         type=bool,
         help=(
-            "Trait, tissue, gene name of the phenotype for better indexing in post-hoc analysis. Default is 'Trait'.",
+            "Indicator whether to find all nearby genes within the specified window. Default is False.",
         ),
     )
 
@@ -574,7 +569,7 @@ def build_closest_parser(subp):
         "--quiet",
         default=False,
         action="store_true",
-        help="Indicator to not print message to console. Default is False. Specify --numpy will store 'True' value.",
+        help="Indicator to not print message to console. Default is False. Specify --quiet will store 'True' value.",
     )
 
     closest.add_argument(
@@ -583,7 +578,7 @@ def build_closest_parser(subp):
         action="store_true",
         help=(
             "Indicator to include debug information in the log. Default is False.",
-            " Specify --numpy will store 'True' value.",
+            " Specify --verbose will store 'True' value.",
         ),
     )
 
@@ -620,35 +615,35 @@ def build_signal_parser(subp):
         "--gwas",
         type=str,
         required=True,
-        help=("Phenotype data. It has to be a tsv file that contains at least two",),
+        help=("Path to GWAS summary statistics file.",),
     )
 
     signal.add_argument(
         "--ref",
         type=str,
         required=True,
-        help=(
-            "Genotype data in plink 1 format. The plink triplet (bed, bim, and fam) should be",
-        ),
+        help=("Path to annotation file (tsv format, compressed or uncompressed).",),
     )
 
     signal.add_argument(
-        "--gwas_cols",
+        "--gwas-cols",
         nargs=5,
         default=["CHR", "SNP", "BP", "BETA", "SE"],
         type=str,
         help=(
-            "Single file that contains subject ID across all ancestries that are used for fine-mapping."
+            "The column name in the GWAS files that indicate",
+            " chromosome, SNP ID, effect allele, non-effect allele, effect size, and standard error.",
         ),
     )
 
     signal.add_argument(
-        "--ref_cols",
+        "--ref-cols",
         nargs=4,
         default=["CHR", "START", "END", "ANNO"],
         type=str,
         help=(
-            "Single file that contains subject ID across all ancestries that are used for fine-mapping."
+            "The column name in the gene annotation file that indicate",
+            " chromosome, start position, end position, and annotation.",
         ),
     )
 
@@ -658,44 +653,38 @@ def build_signal_parser(subp):
         nargs="+",
         type=int,
         default=None,
-        help=("keep file."),
+        help=(
+            "The chromosomes to include in the analysis. Default is all chromosomes.",
+            "However, we recommend users to only focus on one chromosome each time for memory efficiency.",
+        ),
     )
 
     signal.add_argument(
         "--keep",
         type=str,
         default=None,
-        help=("keep file."),
+        help=("Path to a file that includes the annotations users want to focus on.",),
     )
 
     signal.add_argument(
         "--window",
         default=1000,
         type=int,
-        help=(
-            "Integer number of shared effects pre-specified.",
-            " Default is 5. Larger number may cause slow inference.",
-        ),
+        help=("Genomic window (in kb) around the annotation to consider.",),
     )
 
     signal.add_argument(
         "--split",
         default=",",
         type=str,
-        help=(
-            "Integer number of shared effects pre-specified.",
-            " Default is 5. Larger number may cause slow inference.",
-        ),
+        help=("Delimiter to separate multiple annotations in the annotation column.",),
     )
 
     signal.add_argument(
         "--threshold",
         default=1.0,
         type=float,
-        help=(
-            "Integer number of shared effects pre-specified.",
-            " Default is 5. Larger number may cause slow inference.",
-        ),
+        help=("P value threshold to define GWAS SNPs computed for the annotation.",),
     )
 
     signal.add_argument(
@@ -703,7 +692,7 @@ def build_signal_parser(subp):
         default=False,
         type=bool,
         help=(
-            "Trait, tissue, gene name of the phenotype for better indexing in post-hoc analysis. Default is 'Trait'.",
+            "Indicator whether to output all SNPs with annotations. Default is False.",
         ),
     )
 
@@ -712,7 +701,7 @@ def build_signal_parser(subp):
         default="Trait",
         type=str,
         help=(
-            "Trait, tissue, gene name of the phenotype for better indexing in post-hoc analysis. Default is 'Trait'.",
+            "Trait name for better indexing in post-hoc analysis. Default is 'Trait'.",
         ),
     )
 
@@ -722,7 +711,7 @@ def build_signal_parser(subp):
         "--quiet",
         default=False,
         action="store_true",
-        help="Indicator to not print message to console. Default is False. Specify --numpy will store 'True' value.",
+        help="Indicator to not print message to console. Default is False. Specify --quiet will store 'True' value.",
     )
 
     signal.add_argument(
@@ -731,7 +720,7 @@ def build_signal_parser(subp):
         action="store_true",
         help=(
             "Indicator to include debug information in the log. Default is False.",
-            " Specify --numpy will store 'True' value.",
+            " Specify --verbose will store 'True' value.",
         ),
     )
 

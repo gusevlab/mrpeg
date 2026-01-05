@@ -4,38 +4,62 @@
 Model Description
 =================
 
-The SUm of SIngle sHared Effect (SuShiE) extends the Sum of SIngle Effect (SuSiE) [1]_ model by introducing a prior correlation estimator to account for the ancestral quantitative trait loci (QTL) effect size similarity. Specifically, for :math:`i^{\text{th}}` of total :math:`k \in \mathbb{N}` ancestries, we model the molecular data :math:`g_i \in \mathbb{R}^{n_i \times 1}` for :math:`n_i \in \mathbb{N}` individuals as a linear combination of standardized genotype matrix :math:`X_i \in \mathbb{R}^{n_i \times p}` for :math:`p \in \mathbb{N}` SNPs as
+Model Overview
+====================
+
+Mr. PEG estimates the effect size :math:`\alpha \in \mathbb{R}` of a focal gene’s expression on a complex trait. The expression level of the mediating gene is modeled as a linear combination of the expression levels of perturbed genes, which in turn are modeled as a linear combination of genotyped variants.
+
+This hierarchical framework captures the relationships between eQTLs, perturbed genes, and mediating genes, ultimately linking genetic variants to complex traits.
+
+The mathematical representation is given by:
 
 .. math::
-   :nowrap:
 
-   \begin{gather*}
-   g_i = X_i \beta_i+\epsilon_i \\
+   \mathbf{y} = \mathbf{X}\mathbf{\Delta}\boldsymbol{\gamma}\alpha + \boldsymbol{\epsilon}
+   = \mathbf{X}\boldsymbol{\beta} + \boldsymbol{\epsilon}
 
-   \beta_i = \sum_{l=1}^{L}\beta_{i,l} \\
+where
 
-   \beta_{i,l} = \gamma_l \cdot b_{i, l} \\
+- :math:`\mathbf{y} \in \mathbb{R}^{n \times 1}` is the normalized complex trait measured across :math:`n` individuals, with mean 0 and standard deviation 1.
+- :math:`\mathbf{X} \in \mathbb{R}^{n \times k}` is the normalized genotype matrix.
+- :math:`k` is the number of eQTLs across :math:`t` perturbed genes.
+- :math:`\mathbf{\Delta} \in \mathbb{R}^{k \times t}` represents the eQTL effect sizes on the :math:`t` perturbed genes.
+- :math:`\boldsymbol{\gamma} \in \mathbb{R}^{t \times 1}` denotes the gene-to-gene effect sizes on the mediating gene.
+- :math:`\alpha \in \mathbb{R}` is the mediating effect size.
+- :math:`\boldsymbol{\beta} = \mathbf{\Delta}\boldsymbol{\gamma}\alpha \in \mathbb{R}^{k \times 1}` denotes the SNP effects on the complex trait.
+- :math:`\boldsymbol{\epsilon} \sim \mathcal{N}(0, \sigma_\epsilon^2 \mathbf{I}_{n \times n})` is the environmental noise.
 
-   b_{l} = \begin{bmatrix} b_{1,l} \\ \vdots \\ b_{k,l} \end{bmatrix} \sim \mathcal{N}(0, C_l) \\
+Statistical Inference
+====================
 
-   C_{i,i',l} = \begin{cases} \sigma_{i,b,l}^2 & \text{if } i = i' \\ \rho_{i,i',l} \cdot \sigma_{i,b,l} \cdot \sigma_{i',b,l} & \text{otherwise}\end{cases} \\
+Our goal is to test the mediating effect :math:`\alpha` for the focal gene. We obtain the marginal effect size estimate :math:`\hat{\boldsymbol{\beta}}^{*}` from GWASs, the marginal effect size estimate :math:`\hat{\boldsymbol{\Delta}}^{*}` from cis-eQTL studies, and the perturbation effect size estimate :math:`\hat{\boldsymbol{\gamma}}` from perturbational screening experiments.
 
-   \gamma_l   \sim \text{Multi}(1, \pi) \\
-
-   \epsilon_i \sim \mathcal{N}(0, \sigma^2_{i, e}I_{n_i}) \\
-   \end{gather*}
-
-where :math:`\beta_i \in \mathbb{R}^{p \times1}` is the shared QTL effects, :math:`\epsilon_i \in \mathbb{R}^{n_i \times 1}` is the ancestry-specific effects and other environmental noises, :math:`L \in \mathbb{R}` is the number of shared effects, for  :math:`l^{\text{th}}`  single shared effect,  :math:`b_{i,l} \in \mathbb{R}` is a scaler representing effect size, :math:`C_l \in \mathbb{R}^{k \times k}` is the prior covariance matrix with :math:`\sigma^2_{i,b}` as variance and :math:`\rho` as correlation, :math:`\gamma_l` is an binary indicator vector specifying which single SNP is the QTL, :math:`\pi` is the prior probability for each SNP to be QTL, and :math:`\sigma^2_e` is the prior variance for noises.
-
-SuShiE runs `varitional inference <https://en.wikipedia.org/wiki/Variational_Bayesian_methods>`_ to estimate the posterior distribution for :math:`\beta_l` and :math:`\gamma_l` for each :math:`l^{\text{th}}` effect. We can quantify the probability of QTL for each SNP through Posterior Inclusion Probabilities (PIPs). If the posterior distribution of :math:`\gamma_l` is :math:`\text{Multi}(1, \alpha_l)`, then for each SNP :math:`j`, we have:
+We assume :math:`\hat{\boldsymbol{\beta}}^{*}` has the sampling distribution
 
 .. math::
-   \text{PIP}_j = 1 - \prod_{l=1}^L(1 - \alpha_{l, j})
 
-For more details in math derivation and algorithm, stay tuned for our upcoming manuscript.
+   \hat{\boldsymbol{\beta}}^{*} \sim \mathcal{N}(\hat{\mathbf{V}}\boldsymbol{\beta}, \sigma^2 \hat{\mathbf{D}}\hat{\mathbf{V}}\hat{\mathbf{D}})
 
-.. _Reference:
+and derive the unbiased and maximum likelihood estimator (MLE) for :math:`\alpha` as
 
-Reference
-==========
-.. [1] Wang, G., Sarkar, A., Carbonetto, P. and Stephens, M. (2020), A simple new approach to variable selection in regression, with application to genetic fine mapping. J. R. Stat. Soc. B, 82: 1273-1300. https://doi.org/10.1111/rssb.12388
+.. math::
+
+   \hat{\alpha}
+   =
+   \frac{
+     (\hat{\boldsymbol{\Delta}}^{*}\hat{\boldsymbol{\gamma}})^{\mathsf{T}}
+     (\hat{\mathbf{D}}\hat{\mathbf{V}}\hat{\mathbf{D}})^{-1}
+     \hat{\boldsymbol{\beta}}^{*}
+   }{
+     (\hat{\boldsymbol{\Delta}}^{*}\hat{\boldsymbol{\gamma}})^{\mathsf{T}}
+     (\hat{\mathbf{D}}\hat{\mathbf{V}}\hat{\mathbf{D}})^{-1}
+     (\hat{\boldsymbol{\Delta}}^{*}\hat{\boldsymbol{\gamma}})
+   }.
+
+where
+
+- :math:`\hat{\mathbf{V}} \in \mathbb{R}^{k \times k}` is the estimated SNP correlation (LD) matrix.
+- :math:`\sigma^2 \in \mathbb{R}_{+}` is a heterogeneity parameter accounting for noise due to potential horizontal pleiotropy.
+- :math:`\hat{\mathbf{D}} \in \mathbb{R}^{k \times k}` is a diagonal matrix containing the standard errors of :math:`\hat{\boldsymbol{\beta}}^{*}` from GWASs.
+
+To estimate the standard error of :math:`\hat{\alpha}`, we permute the perturbation effects :math:`\hat{\boldsymbol{\gamma}}` to construct the null distribution of :math:`\hat{\alpha}`, providing a conservative estimate. This null assumes no association between complex traits and mediating genes, meaning any observed relationship is due solely to random perturbation effects rather than regulation by the perturbed genes and their cis-eQTLs.

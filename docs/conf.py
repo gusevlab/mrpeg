@@ -72,8 +72,8 @@ source_suffix = [".rst", ".md"]
 master_doc = "index"
 
 # General information about the project.
-project = "MrPEG"
-copyright = "2025, Gusev Lab"
+project = "mrpeg"
+copyright = "2025, GusevLab"
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -101,23 +101,17 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", ".venv"]
 autodoc_class_signature = "separated"
 
 python_apigen_modules = {
-    "mrpeg.signal": "api/signal/",
-    "mrpeg.closest": "api/closest/",
     "mrpeg.peg": "api/peg/",
+    "mrpeg.closest": "api/closest/",
+    "mrpeg.signal": "api/signal/",
     "mrpeg.cli": "api/cli/",
 }
 
 python_apigen_default_groups = [
     (r".*:mrpeg.cli.*", "CLI Public-members"),
-    (r".*:mrpeg.signal.*", "Utils Public-members"),
-    (r".*:mrpeg.closest.*", "IO Public-members"),
     (r".*:mrpeg.peg.*", "Infer Public-members"),
-    (r"class:mrpeg.peg.*", "Infer Classes"),
-    # (r"method:.*\.__(str|repr)__", "String representation"),
-    # ("method:.*", "Methods"),
-    # ("classmethod:.*", "Class methods"),
-    # (r"method:.*\.__(init|new)__", "Constructors"),
-    # (r"method:.*\.[A-Z][a-z]*", "Constructors"),
+    (r".*:mrpeg.signal.*", "Annotation Public-members"),
+    (r".*:mrpeg.closest.*", "Closest Gene Public-members"),
 ]
 
 python_apigen_default_order = [
@@ -187,7 +181,7 @@ html_theme = "sphinx_immaterial"
 html_static_path = ["_static"]
 html_css_files = ["extra_css.css"]
 html_last_updated_fmt = ""
-html_title = "Mr. PEG"
+html_title = "mrpeg"
 html_favicon = "_static/images/favicon.ico"
 html_logo = "_static/images/dna.png"
 
@@ -196,8 +190,8 @@ html_theme_options = {
         "repo": "fontawesome/brands/github",
     },
     "site_url": "https://gusevlab.github.io/mrpeg/",
-    "repo_url": "https://gusevlab.com/gusevlab/mrpeg/",
-    "repo_name": "Mr PEG",
+    "repo_url": "https://github.com/gusevlab/mrpeg/",
+    "repo_name": "mrpeg",
     "repo_type": "github",
     "edit_uri": "blob/main/docs",
     "globaltoc_collapse": True,
@@ -239,13 +233,6 @@ html_theme_options = {
     ],
     # BEGIN: version_dropdown
     "version_dropdown": True,
-    # "version_info": [
-    #     {
-    #         "version": "https://gusevlab.github.io/mrpeg",
-    #         "title": "Github Pages",
-    #         "aliases": [],
-    #     },
-    # ],
     # END: version_dropdown
     "toc_title_is_page_title": True,
     # BEGIN: social icons
@@ -263,7 +250,7 @@ html_theme_options = {
 }
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = "MrPEG-doc"
+htmlhelp_basename = "mrpeg-doc"
 
 # -- General options
 # If this is True, todo emits a warning for each TODO entries. The default is False.

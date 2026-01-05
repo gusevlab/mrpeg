@@ -38,17 +38,6 @@ __all__ = [
 
 
 class CleanData(NamedTuple):
-    """Define the class for the prior parameter of SuShiE model.
-
-    Attributes:
-        beta: The GWAS effect size.
-        se: The diagonal matrix of inverse of GWAS standard error.
-        eqtl: The eQTL z scores.
-        perturb: The perturbation effect z scores.
-        ld: The inverse of the LD matrix
-        gene_names: The downstream gene names.
-
-    """
 
     beta: Array
     se: Array
@@ -586,13 +575,13 @@ def infer_peg(
         se: ArrayLike. The vector of the inverse of GWAS Standard error
         eqtl: ArrayLike. eQTL Z scores.
         perturb: ArrayLike. Perturbation effect size matrix.
-        inv_ld: ArrayLike. The inverse of the LD matrix.
+        ld: ArrayLike. The LD matrix.
         perm_number: int = 500. The number of permutations.
         seed: int = 12345,
+        alt: bool = False. Whether to use the alternative distribution assumption.
 
     Returns:
-        :py:obj:`SushieResult`: A SuShiE result object that contains prior (:py:obj:`Prior`),
-        posterior (:py:obj:`Posterior`), ``cs``, ``pip``, ``elbo``, and ``elbo_increase``.
+        :py:obj:`mrpegResult`: A numpy array containing the inference results.
 
     """
     if seed <= 0:
@@ -667,14 +656,9 @@ def infer_peg(
     gamma_perm_z, gamma_perm_mean = _get_p(gamma, null_dist)
 
     # compute the null distribution p value based on permutation
-    gamma_null_p = jnp.sum(gamma <= null_dist, axis=0) / (perm_number + 1)
-
-    # for the p values greater than 0.5, we use the upper tail
-    gamma_null_p = jnp.where(
-        gamma_null_p > 0.5,
-        1 - jnp.sum(gamma >= null_dist, axis=0) / (perm_number + 1),
-        gamma_null_p,
-    )
+    gamma_null_p1 = (jnp.sum(null_dist >= gamma, axis=0) + 1.0) / (perm_number + 1.0)
+    gamma_null_p2 = (jnp.sum(null_dist <= gamma, axis=0) + 1.0) / (perm_number + 1.0)
+    gamma_null_p = jnp.minimum(1.0, jnp.minimum(gamma_null_p1, gamma_null_p2) * 2)
 
     result = jnp.column_stack(
         (

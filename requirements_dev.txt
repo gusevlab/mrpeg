@@ -1,14 +1,10 @@
-equinox
-intervaltree
-jax
-jaxlib>=0.4.7
-pandas>=1.5.0
-pandas-plink==2.2.9
+-r requirements.txt
+
+# Dev dependencies
 pre-commit
 pymdown-extensions
 pytest-accept
 pytest-cov
-scipy
 setuptools
 sphinx>=5
-sphinx_immaterial
+sphinx-immaterial
