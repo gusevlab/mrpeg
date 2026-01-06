@@ -11,17 +11,20 @@ mrpeg is a Python software to perform association test integrating perturbationa
 - We detest usage of our software or scientific outcome to promote racial discrimination.
 ```
 
-Mr. PEG manuscript is in progress.
+The Mr. PEG manuscript is described in
+
+[**Integrating perturbational screens, eQTL, and GWAS data identifies mediating genes for complex traits**](https://www.medrxiv.org/content/10.64898/2026.01.05.26343421v1)
+
+Zeyun Lu, Yi Ding, Nathan LaPierre, Lili Wang, Douglas Yao, Nicholas Mancuso, Alexander Gusev
 
 Check [here](https://gusevlab.github.io/mrpeg/) for full
 documentation.
 
   [**Installation**](#installation)
   | [**Example**](#get-started-with-example)
-  | [**Notes**](#notes)
   | [**Version History**](#version-history)
   | [**Support**](#support)
-  | [**Other Software**](#other-software)
+
 
 ## Installation
 

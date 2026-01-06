@@ -6,7 +6,11 @@ mrpeg is a Python package for identifying mediating genes underlying complex tra
 
 **We detest usage of our software or scientific outcome to promote racial discrimination.**
 
-Mr. PEG manuscript is in progress.
+The Mr. PEG manuscript is described in
+
+[**Integrating perturbational screens, eQTL, and GWAS data identifies mediating genes for complex traits**](https://www.medrxiv.org/content/10.64898/2026.01.05.26343421v1)
+
+Zeyun Lu, Yi Ding, Nathan LaPierre, Lili Wang, Douglas Yao, Nicholas Mancuso, Alexander Gusev
 
 Contents
 ========
