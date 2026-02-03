@@ -1,7 +1,7 @@
 Utils
 =================
 
-The API for utils functions in ``./sushie/utils.py`` file.
+The API for utility functions in ``./mrpeg/log.py`` and other utility modules.
 
 Functions
 ---------

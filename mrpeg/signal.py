@@ -1,6 +1,7 @@
 import copy
 import os
 import warnings
+from typing import List, Optional, Tuple
 
 import numpy as np
 from intervaltree import IntervalTree
@@ -51,7 +52,7 @@ def _parameter_check(
     return None
 
 
-def _process_gwas(gwas, gwas_cols, n_chr, threshold):
+def _process_gwas(gwas: str, gwas_cols: List[str], n_chr: Optional[List[int]], threshold: float) -> pd.DataFrame:
 
     df_gwas = pd.read_csv(gwas, sep="\t").dropna()
 
@@ -123,7 +124,7 @@ def _process_gwas(gwas, gwas_cols, n_chr, threshold):
     return df_gwas
 
 
-def _process_ref(ref, ref_cols, n_chr, keep, window):
+def _process_ref(ref: str, ref_cols: List[str], n_chr: Optional[List[int]], keep: Optional[str], window: float) -> pd.DataFrame:
 
     df_ref = pd.read_csv(ref, sep="\t").dropna()
 
@@ -205,7 +206,7 @@ def _process_ref(ref, ref_cols, n_chr, keep, window):
     return df_ref
 
 
-def _annot_tree(df_gwas, df_ref, sep, snps_anno):
+def _annot_tree(df_gwas: pd.DataFrame, df_ref: pd.DataFrame, sep: str, snps_anno: bool) -> Tuple[pd.DataFrame, pd.DataFrame]:
 
     anno_chrs = df_gwas.CHR.unique()
 
@@ -229,7 +230,7 @@ def _annot_tree(df_gwas, df_ref, sep, snps_anno):
         # tree.merge_overlaps(data_reducer=data_reducer)
         for index, row in tmp_gwas.iterrows():
             row = pd.DataFrame(row).T
-            bp = int(row["BP"])
+            bp = int(row["BP"].iloc[0])
             l_annots = sep.join(entry.data for entry in tree[bp])
 
             tmp_split = l_annots.split(sep)
@@ -259,7 +260,7 @@ def _annot_tree(df_gwas, df_ref, sep, snps_anno):
     return res_full, res_filter
 
 
-def _summarize(anno_snps, df_ref):
+def _summarize(anno_snps: pd.DataFrame, df_ref: pd.DataFrame) -> pd.DataFrame:
     anno_snps = anno_snps[~anno_snps.duplicated(subset=["ANNO", "SNP"], keep="first")]
     result = (
         anno_snps.groupby("ANNO")["Z"]

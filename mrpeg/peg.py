@@ -152,7 +152,7 @@ def _prepare_eqtl(eqtl: str, eqtl_cols: List) -> pd.DataFrame:
 def _prepare_perturb(perturb: str, top_signal: float) -> pd.DataFrame:
     if top_signal < 0 or top_signal > 1:
         raise ValueError(
-            "The percentage of top signals need to greater than 0 and less or euqal to 1."
+            "The percentage of top signals must be greater than 0 and less than or equal to 1."
         )
 
     df_perturb = (
@@ -568,20 +568,49 @@ def infer_peg(
     seed: int = 12345,
     alt: bool = False,
 ) -> Array:
-    """The main inference function for running SuShiE.
+    """The main inference function for identifying mediating genes using Mr. PEG.
+
+    Performs mediation effect estimation integrating GWAS, eQTL, and
+    perturbation data with permutation-based null distribution inference.
 
     Args:
-        beta: ArrayLike. GWAS effect sizes.
-        se: ArrayLike. The vector of the inverse of GWAS Standard error
-        eqtl: ArrayLike. eQTL Z scores.
-        perturb: ArrayLike. Perturbation effect size matrix.
-        ld: ArrayLike. The LD matrix.
-        perm_number: int = 500. The number of permutations.
-        seed: int = 12345,
-        alt: bool = False. Whether to use the alternative distribution assumption.
+        beta: GWAS effect sizes, array of shape (k,).
+        se: GWAS standard errors, array of shape (k,).
+        eqtl: eQTL Z-scores, array of shape (k,).
+        perturb: Perturbation effect size matrix, array of shape (k, t),
+            where k is the number of perturbed genes and t is the number
+            of downstream target genes.
+        ld: Linkage disequilibrium matrix, array of shape (k, k).
+        perm_number: Number of permutations for null distribution estimation.
+            Must be positive; values below 100 may yield inaccurate p-values.
+        seed: Random seed for permutation testing. Must be a positive integer.
+        alt: Whether to use the alternative distribution assumption for
+            the null model.
 
     Returns:
-        :py:obj:`mrpegResult`: A numpy array containing the inference results.
+        Array of shape (t, 6) where each row corresponds to a downstream gene
+        and columns are:
+            - gamma: Estimated mediation effect size.
+            - gamma_se: Standard error of the effect size.
+            - gamma_p: P-value from t-test.
+            - gamma_perm_mean: Mean of the permutation null distribution.
+            - gamma_perm_z: Z-score relative to permutation null.
+            - gamma_null_p: Two-sided p-value from permutation null.
+
+    Raises:
+        ValueError: If seed <= 0, perm_number <= 0, or input dimensions mismatch.
+
+    Example:
+        >>> import numpy as np
+        >>> from mrpeg.peg import infer_peg
+        >>> beta = np.random.randn(10)
+        >>> se = np.ones(10) * 0.1
+        >>> eqtl = np.random.randn(10)
+        >>> perturb = np.random.randn(10, 5)
+        >>> ld = np.eye(10)
+        >>> results = infer_peg(beta, se, eqtl, perturb, ld, perm_number=10, seed=42)
+        >>> results.shape
+        (5, 6)
 
     """
     if seed <= 0:
@@ -591,7 +620,7 @@ def infer_peg(
 
     if perm_number <= 0:
         raise ValueError(
-            "The the permutation number is invalid. Choose a positive integer."
+            "The permutation number is invalid. Choose a positive integer."
         )
 
     if perm_number < 100:

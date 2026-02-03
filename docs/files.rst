@@ -4,34 +4,21 @@
 Output Files
 ============
 
-The output files consist of eight types:
+mrpeg produces different types of output files depending on which command is run. Users can compress output files by specifying ``--compress``.
 
-#. ``*.log``
-#. ``*.cs.tsv``
-#. ``*.alphas.tsv``
-#. ``*.weights.tsv``
-#. ``*.corr.tsv``
-#. ``*.her.tsv``
-#. ``*.cv.tsv``
-#. ``*.all.results.npy``
+The output files consist of four main types:
 
-Users can output them as compressed files by specifying ``--compress``
+#. ``*.mrpeg.tsv`` - Main inference results from ``mrpeg peg``
+#. ``*.closest.tsv`` - Closest gene annotations from ``mrpeg closest``
+#. ``*.nearby.tsv`` - Nearby gene annotations from ``mrpeg closest --nearby``
+#. ``*.signal.tsv`` - GWAS signal summaries from ``mrpeg signal``
 
-Logger
--------------
+.. _mrpegfile:
 
-SuShiE by default has a ``*.log`` file that keep tracks of inference process.
+Main Inference Results
+----------------------
 
-.. _csfile:
-
-Credible Set
-------------
-
-SuShiE by default outputs a ``*.cs.tsv`` file that tracks the SNPs in the credible sets.
-
-If ``--meta`` and ``--mega`` are specified (see definitions in :ref:`meta`), it will output ``*.meta.cs.tsv`` and ``*.mega.cs.tsv``, respectively, to track the SNPs in the credible sets inferred by meta SuShiE and mega SuShiE.
-
-For ``*.meta.cs.tsv``, it will row-bind the output for single-ancestry SuShiE differed by column ``ancestry``.
+The ``mrpeg peg`` command outputs a ``*.mrpeg.tsv`` file containing the mediation effect estimates and p-values for each gene.
 
 .. list-table::
    :header-rows: 1
@@ -40,74 +27,64 @@ For ``*.meta.cs.tsv``, it will row-bind the output for single-ancestry SuShiE di
      - Type
      - Examples
      - Notes
-   * - SNPIndex
-     - Integer
-     - 1, 33, 77
-     - The SNP unique index identifier. It matches the order of entries in the original genotype data counting start from 0.
-   * - chrom
-     - Integer
-     - 1, 23
-     - The chromosome number.
-   * - snp
-     - String
-     - rs12345
-     - The SNP unique identifier (e.g., rs ID). It matches the entries in the original genotype data.
-   * - pos
-     - Integer
-     - 123456
-     - The SNP position on the chromosome. It matches the entries in the original genotype data.
-   * - a0
-     - String
-     - A
-     - The non-counting allele. It matches the entries in the original genotype data.
-   * - a1
-     - String
-     - G
-     - The counting allele. If the counting allele is G, and genotype is GG, then it is coded as 2. It matches the entries in the original genotype data.
-   * - CSIndex
-     - Integer
-     - 1, 2
-     - The credible set unique index.
-   * - alpha
-     - Float
-     - 0.8
-     - The posterior probability of SNPs to be causal in the corresponding credible set (:math:`\alpha_{l,j}` in :ref:`Model`).
-   * - c_alpha
-     - Float
-     - 0.95
-     - The cumulative posterior probability of SNPs to be causal in the descending order. This decides which SNPs are included in the credible sets.
-   * - pip_all
-     - Float
-     - 0.95
-     - The posterior inclusion probability (:math:`\text{PIP}_j` in :ref:`Model`) calculated across :math:`L` credible sets. For ``*.meta.cs.tsv``, it will have additional column called ``meta_pip_all`` .
-   * - pip_cs
-     - Float
-     - 0.95
-     - The posterior inclusion probability (:math:`\text{PIP}_j` in :ref:`Model`) calculated across credible sets that are kept after pruning based on purity. For ``*.meta.cs.tsv``, it will have additional column called ``meta_pip_cs``.
    * - trait
      - String
-     - GeneABC
-     - The trait, tissue, or gene name.
-   * - n_snps
-     - Integer
-     - 500
-     - The number of total SNPs in the inference.
-   * - ancestry
+     - height, bmi
+     - The trait name specified with ``--trait``
+   * - tissue
      - String
-     - sushie, mega, ancestry_1
-     - The inference method for this credible set.
+     - blood, brain
+     - The tissue name specified with ``--tissue`` (default: "NA")
+   * - gene_name
+     - String
+     - ENSG00000123456, GENE1
+     - The downstream gene name from the perturbation matrix
+   * - n_perturb_top
+     - Integer
+     - 100, 500
+     - Number of top perturbation effects used (filtered by ``--top-signal``)
+   * - n_perturb_all
+     - Integer
+     - 1000, 5000
+     - Total number of perturbed genes in the analysis
+   * - n_gwas_sig
+     - Integer
+     - 50, 200
+     - Number of genome-wide significant SNPs included
+   * - gamma
+     - Float
+     - 0.15, -0.23
+     - Estimated mediation effect size
+   * - gamma_se
+     - Float
+     - 0.05, 0.08
+     - Standard error of the mediation effect
+   * - gamma_p
+     - Float
+     - 0.001, 0.05
+     - P-value based on t-test
+   * - gamma_perm_mean
+     - Float
+     - 0.0, 0.01
+     - Mean of the permutation null distribution
+   * - gamma_perm_z
+     - Float
+     - 3.5, -2.1
+     - Z-score based on permutation distribution
+   * - gamma_null_p
+     - Float
+     - 0.0001, 0.05
+     - P-value based on permutation null distribution (conservative)
 
-.. _alphasfile:
+.. note::
+   The ``gamma_null_p`` values are typically more conservative than ``gamma_p`` as they are based on permutation testing. Use these for controlling family-wise error rate in large-scale analyses.
 
-Full Credible Set with Alphas
------------------------------
+.. _closestfile:
 
-By specifying ``--alphas``, SuShiE outputs a ``*.alphas.tsv`` file that tracks all the SNPs' PIP, :math:`\alpha` (see :ref:`Model`), and purity across all :math:`L`.
+Closest Gene Annotations
+-------------------------
 
-If ``--meta`` and ``--mega`` are specified (see definitions in :ref:`meta`), it will output ``*.meta.alphas.tsv`` and ``*.mega.alphas.tsv``, respectively, to track the information inferred by meta SuShiE and mega SuShiE.
-
-For ``*.meta.alphas.tsv``, it will row-bind the output for single-ancestry SuShiE differed by column ``ancestry``.
-
+The ``mrpeg closest`` command outputs a ``*.closest.tsv`` file that identifies the closest gene to each genome-wide significant SNP.
 
 .. list-table::
    :header-rows: 1
@@ -116,247 +93,220 @@ For ``*.meta.alphas.tsv``, it will row-bind the output for single-ancestry SuShi
      - Type
      - Examples
      - Notes
-   * - SNPIndex
+   * - CHR
      - Integer
-     - 1, 33, 77
-     - The SNP unique index identifier. It matches the order of entries in the original genotype data counting start from 0.
-   * - chrom
+     - 1, 22, 23
+     - Chromosome number
+   * - SNP
+     - String
+     - rs12345, snp_1_1000000
+     - SNP identifier
+   * - BP
      - Integer
-     - 1, 23
-     - The chromosome number.
-   * - snp
-     - String
-     - rs12345
-     - The SNP unique identifier (e.g., rs ID). It matches the entries in the original genotype data.
-   * - pos
-     - Integer
-     - 123456
-     - The SNP position on the chromosome. It matches the entries in the original genotype data.
-   * - a0
-     - String
-     - A
-     - The non-counting allele. It matches the entries in the original genotype data.
-   * - a1
-     - String
-     - G
-     - The counting allele. If the counting allele is G, and genotype is GG, then it is coded as 2. It matches the entries in the original genotype data.
-   * - alpha_l1
+     - 1000000
+     - Base pair position
+   * - BETA
      - Float
-     - 0.8
-     - The posterior probability of SNPs to be causal in the first credible set (:math:`\alpha_{l,j}` in :ref:`Model`). Depending on ``--L``, it can have extra columns.
-   * - in_cs_l1
-     - Integer
-     - 0, 1
-     - The indicator whether the SNP is in the first credible set. Depending on ``--L``, it can have extra columns.
-   * - purity_l1
-     - float
-     - 0.634
-     - The sample-size-weighted average purity across ancestries. To compare with the ``--purity``, it will decide the value in ``in_cs_l1``. Depending on ``--L``, it can have extra columns.
-   * - kept_l1
-     - Integer
-     - 0, 1
-     - The indicator whether the credible set is kept after pruning based on purity threshold. Depending on ``--L``, it can have extra columns.
-    * - log_bf_l1
-     - float
-     - 100.23
-      - The log Bayes factor for the first credible set. Depending on ``--L``, it can have extra columns.
+     - 0.05, -0.10
+     - GWAS effect size
+   * - SE
+     - Float
+     - 0.02
+     - GWAS standard error
+   * - GENE
+     - String
+     - ENSG00000123456, GENE1
+     - Closest gene identifier
    * - trait
      - String
-     - GeneABC
-     - The trait, tissue, or gene name.
-   * - n_snps
+     - height, bmi
+     - The trait name specified with ``--trait``
+
+.. note::
+   If a SNP falls within a gene body (between TSS and TES), that gene is assigned. Otherwise, the gene with the closest transcription start or end site is assigned. Multiple genes may be assigned to a single SNP if they are equidistant.
+
+.. _nearbyfile:
+
+Nearby Gene Annotations
+-----------------------
+
+The ``mrpeg closest --nearby`` command outputs a ``*.nearby.tsv`` file that identifies all genes within a specified window of each genome-wide significant SNP.
+
+.. list-table::
+   :header-rows: 1
+
+   * - Column
+     - Type
+     - Examples
+     - Notes
+   * - CHR
      - Integer
-     - 500
-     - The number of total SNPs in the inference.
-   * - purity_threshold
-     - float
+     - 1, 22, 23
+     - Chromosome number
+   * - TSS
+     - Integer
+     - 1000000
+     - Transcription start site position
+   * - TES
+     - Integer
+     - 1050000
+     - Transcription end site position
+   * - GENE
+     - String
+     - ENSG00000123456, GENE1
+     - Gene identifier
+   * - snp
+     - String
+     - rs12345, snp_1_1000000
+     - SNP identifier within window
+   * - trait
+     - String
+     - height, bmi
+     - The trait name specified with ``--trait``
+
+.. note::
+   The window size is specified with ``--window`` in kilobases. Genes are included if their transcribed region (TSS to TES) overlaps with the window centered on each SNP.
+
+.. _signalfile:
+
+GWAS Signal Summaries
+---------------------
+
+The ``mrpeg signal`` command outputs a ``*.signal.tsv`` file that summarizes GWAS test statistics within each gene annotation.
+
+.. list-table::
+   :header-rows: 1
+
+   * - Column
+     - Type
+     - Examples
+     - Notes
+   * - ANNO
+     - String
+     - ENSG00000123456, GENE1
+     - Gene or annotation identifier
+   * - CHR
+     - Integer
+     - 1, 22, 23
+     - Chromosome number
+   * - P0
+     - Integer
+     - 1000000
+     - Annotation start position (without flanking region)
+   * - P1
+     - Integer
+     - 1050000
+     - Annotation end position (without flanking region)
+   * - P0_FLANK
+     - Integer
+     - 950000
+     - Annotation start position (with flanking region)
+   * - P1_FLANK
+     - Integer
+     - 1100000
+     - Annotation end position (with flanking region)
+   * - mean_chisq
+     - Float
+     - 5.2
+     - Mean chi-square statistic (Z²) across SNPs in annotation
+   * - sd_chisq
+     - Float
+     - 2.1
+     - Standard deviation of chi-square statistics
+   * - median_chisq
+     - Float
+     - 4.8
+     - Median chi-square statistic
+   * - max_chisq
+     - Float
+     - 15.3
+     - Maximum chi-square statistic
+   * - min_chisq
+     - Float
      - 0.5
-     - The purity threshold to prune the credible sets.
-   * - ancestry
-     - String
-     - sushie, mega, ancestry_1
-     - The inference method for this credible set.
-
-
-.. _weightsfile:
-Prediction Weights
-------------------
-
-SuShiE by default outputs a ``*.weights.tsv`` file that contains the prediction weights, PIPs, and whether in CS, across all the fine-mapped SNPs.
-
-If ``--meta`` and ``--mega`` are specified (see definitions in :ref:`meta`), it will output ``*.meta.weights.tsv`` and ``*.mega.weights.tsv``, respectively.
-
-.. list-table::
-   :header-rows: 1
-
-   * - Column
-     - Type
-     - Examples
-     - Notes
-   * - SNPIndex
-     - Integer
-     - 1, 33, 77
-     - The SNP unique index identifier. It matches the order of entries in the original genotype data counting start from 0.
-   * - chrom
-     - Integer
-     - 1, 23
-     - The chromosome number.
-   * - snp
-     - String
-     - rs12345
-     - The SNP unique identifier (e.g., rs ID). It matches the entries in the original genotype data.
-   * - pos
-     - Integer
-     - 123456
-     - The SNP position on the chromosome. It matches the entries in the original genotype data.
-   * - a0
-     - String
-     - A
-     - The non-counting allele. It matches the entries in the original genotype data.
-   * - a1
-     - String
-     - G
-     - The counting allele. If the counting allele is G, and genotype is GG, then it is coded as 2. It matches the entries in the original genotype data.
-   * - trait
-     - String
-     - GeneABC
-     - The trait, tissue, or gene name.
-   * - ancestry1_sushie_weight
+     - Minimum chi-square statistic
+   * - qtl1_chisq
+     - Float
+     - 2.1
+     - First quartile (25th percentile) of chi-square statistics
+   * - qtl3_chisq
+     - Float
+     - 7.8
+     - Third quartile (75th percentile) of chi-square statistics
+   * - mean_z
+     - Float
+     - 1.5
+     - Mean Z-score across SNPs in annotation
+   * - sd_z
+     - Float
+     - 1.2
+     - Standard deviation of Z-scores
+   * - median_z
      - Float
      - 1.3
-     - The ancestry-specific SNP prediction weights inferred by SuShiE. For ``*.meta.weights.tsv``, it will have ``ancestry1_single_weight`` (It will have extra columns depending on the number of ancestries). If ``--mega``, it will have ``mega_weight`` for all ancestries.
-   * - sushie_pip_all
+     - Median Z-score
+   * - max_z
      - Float
-     - 0.95
-     - The posterior inclusion probability (:math:`\text{PIP}_j` in :ref:`Model`) for all the SNPs calculated across :math:`L` credible sets. (``*.cs.tsv`` only contains the PIPs of SNPs that are only in the credible sets). For ``*.meta.weights.tsv``, it will have ``ancestry1_single_pip``, ``meta_pip_all`` (It will have extra columns depending on the number of ancestries). For ``*.mega.weights.tsv``, it will have ``mega_pip_all``.
-   * - sushie_pip_cs
+     - 4.2
+     - Maximum Z-score
+   * - min_z
      - Float
-     - 0.95
-     - The posterior inclusion probability (:math:`\text{PIP}_j` in :ref:`Model`) for all the SNPs calculated across credible sets that are kept after purning based on purity. (``*.cs.tsv`` only contains the PIPs of SNPs that are only in the credible sets). For ``*.meta.weights.tsv``, it will have ``ancestry1_single_pip``, ``meta_pip_cs`` (It will have extra columns depending on the number of ancestries). For ``*.mega.weights.tsv``, it will have ``mega_pip_cs``.
-   * - sushie_cs_index
+     - -0.5
+     - Minimum Z-score
+   * - qtl1_z
+     - Float
+     - 0.5
+     - First quartile (25th percentile) of Z-scores
+   * - qtl3_z
+     - Float
+     - 2.1
+     - Third quartile (75th percentile) of Z-scores
+   * - count
      - Integer
-     - 0, 1, ..., :math:`L`
-     - The credible set index where the SNPs fall into. 0 means no credible sets contain this SNP. For ``*.meta.weights.tsv``, it will have ``ancestry1_cs_index``(It will have extra columns depending on the number of ancestries). For ``*.mega.weights.tsv``, it will have ``mega_cs_index``.
-   * - n_snps
-     - Integer
-     - 500
-     - The number of total SNPs in the inference.
-
-.. _corrfile:
-Effect Size Correlation
------------------------
-
-SuShiE by default outputs a ``*.corr.tsv`` file that contains the estimated effect size covariance matrix for each output credible set (after pruning for purity). For results of all :math:`L` credible sets, see :ref:`npyfile` file.
-
-.. list-table::
-   :header-rows: 1
-
-   * - Column
-     - Type
-     - Examples
-     - Notes
+     - 150
+     - Number of SNPs within the annotation
    * - trait
      - String
-     - GeneABC
-     - The trait, tissue, or gene name.
-   * - CSIndex
-     - Integer
-     - 1, 2
-     - The credible set unique index. It depends on ``--L`` and puring after purity.
-   * - ancestry1_est_var
-     - Float
-     - 1.34
-     - The inferred effect size variance (the posterior estimate for :math:`\sigma^2_{i,b}` in :ref:`Model`) for ancestry 1. It depends on the number of ancestry. One estimate for each credible set.
-   * - ancestry1_ancestry2_est_covar
-     - Float
-     - 2.56
-     - The inferred effect size covariance between ancestry 1 and ancestry 2. It depends on the number of pairs of ancestries. One estimate for each credible set.
-   * - ancestry1_ancestry2_est_corr
-     - Float
-     - 0.8
-     - The inferred effect size correlation (the posterior estimate for :math:`\rho` in :ref:`Model`) between ancestry 1 and ancestry 2. It depends on the number of pairs of ancestries. One estimate for each credible set.
+     - height, bmi
+     - The trait name specified with ``--trait``
 
-.. _herfile:
-Heritability Estimation
------------------------
+.. note::
+   The flanking region is specified with ``--window`` in kilobases. GWAS signals are summarized using Z-scores computed as BETA/SE from the input GWAS summary statistics.
 
-By specifying ``--her``, SuShiE outputs a ``*.her.tsv`` file that tracks the heritability analysis results for each ancestry.
+.. _optionalfiles:
 
-It contains two rounds of heritability estimation:
+Optional Annotation Files
+--------------------------
 
-#. Using all the SNPs.
-#. Using the SNPs in the credible set (only if SuShiE outputs non-empty credible sets after pruning for purity).
+When running ``mrpeg signal`` with the ``--snps-anno`` flag, two additional files are generated:
 
-.. list-table::
-   :header-rows: 1
+#. ``*.full.anno.tsv.gz`` - All SNPs with their annotation assignments (before filtering)
+#. ``*.filter.anno.tsv.gz`` - SNPs with their annotation assignments (after filtering by ``--split``)
 
-   * - Column
-     - Type
-     - Examples
-     - Notes
-   * - ancestry
-     - Integer
-     - 1, 2
-     - The ancestry index.
-   * - genetic_var
-     - Flat
-     - 1.32
-     - The variance of genetic components contributing to the complex traits. ``s_genetic_var``, which is estimated only from the SNPs in the credible sets, will be appended if credible sets are not empty after pruning for purity.
-   * - h2g
-     - Flat
-     - 0.23
-     - The narrow-sense cis-heritability of the traits based on `limix <https://github.com/limix/limix>`_ definition. This includes the variance of the fixed effects.
-   * - lrt_stats
-     - Flat
-     - -123.23
-     - The likelihood ratio test statistics compared the linear mixed effects model to the fixed effects model (no genetic variance). ``s_lrt_stats``, which is estimated only from the SNPs in the credible sets, will be appended if credible sets are not empty after pruning for purity.
-   * - p_value
-     - Flat
-     - -123.23
-     - The :math:`p` value for the likelihood ratio test statistics based on chi-square distribution with 1 dof. ``s_p_value``, which is estimated only from the SNPs in the credible sets, will be appended if credible sets are not empty after pruning for purity.
-   * - trait
-     - String
-     - GeneABC
-     - The trait, tissue, or gene name.
+These files contain SNP-level information including:
 
+- CHR, BP, SNP - SNP identifiers and position
+- Z - GWAS Z-score
+- ANNO - Assigned annotation/gene
+- trait - Trait name
 
-.. _cvfile:
-Cross Validation
-----------------
+The ``--split`` parameter controls whether SNPs can be assigned to multiple overlapping annotations.
 
-By specifying ``--cv``, SuShiE outputs a ``*.cv.tsv`` file that contains the results from cross validation (see :ref:`cv` for how we compute the :math:`r^2`).
+.. _logger:
 
-.. list-table::
-   :header-rows: 1
+Logger
+------
 
-   * - Column
-     - Type
-     - Examples
-     - Notes
-   * - ancestry
-     - Integer
-     - 1, 2
-     - The ancestry index.
-   * - rsq
-     - Flat
-     - 0.9
-     - :math:`r^2` between predicted and measured expressions from cross-validations.
-   * - p_value
-     - Flat
-     - 0.23
-     - The :math:`p` value for the :math:`r^2`.
-   * - N
-     - Integer
-     - 200
-     - The sample size for SuShiE inference.
-   * - trait
-     - String
-     - GeneABC
-     - The trait, tissue, or gene name.
+All mrpeg commands produce logging output that tracks the inference process. By default, logs are printed to the console. You can control logging verbosity with:
 
+- ``--quiet`` or ``-q`` - Suppress most log messages
+- ``--verbose`` or ``-v`` - Show detailed log messages
 
-.. _npyfile:
-Everything
-----------
+The logs include:
 
-By specifying ``--numpy``, SuShiE outputs a ``*.all.results.npy`` file that contains all the results from inference and snp information. It can only be read by python numpy package.
+- Data loading progress
+- Number of SNPs, genes, and samples processed
+- Filtering statistics (e.g., ambiguous SNPs removed, LD pruning results)
+- Computation progress for permutation testing
+- Error messages and warnings
+- Final output file locations

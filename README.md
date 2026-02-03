@@ -1,4 +1,4 @@
-[![Documentation-webpage](https://img.shields.io/badge/Docs-Available-brightgreen)](https://gusevlab.github.io/sushie/)
+[![Documentation-webpage](https://img.shields.io/badge/Docs-Available-brightgreen)](https://gusevlab.github.io/mrpeg/)
 [![Github](https://img.shields.io/github/stars/gusevlab/mrpeg?style=social)](https://github.com/gusevlab/mrpeg)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Project generated with PyScaffold](https://img.shields.io/badge/-PyScaffold-005CA0?logo=pyscaffold)](https://pyscaffold.org/)
@@ -52,7 +52,7 @@ documentation.
 
 ## Get Started with Example
 
-mrpwg software is very easy to use:
+mrpeg software is very easy to use:
 
 For performing inference:
 ``` bash
@@ -116,15 +116,16 @@ You can customize this function with your own ideas!
 
 ## Version History
 
-| Version | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-|---------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| 0.1     | Initial Release                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| Version | Description                                                                                                                                                                                                                                                                                     |
+|---------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| 0.2     | Added input format specifications, troubleshooting guide, and performance guide. Fixed documentation errors carried over from a previous project. Added missing `intervaltree` dependency. Added type hints to `closest` and `signal` modules. Added test suite with 50 unit tests. This update was completely done using Claude Code with human verification. |
+| 0.1     | Initial Release                                                                                                                                                                                                                                                                                 |
 
 ## Support
 
 For any questions, comments, bug reporting, and feature requests, please contact Zeyun Lu (<zeyun_lu@dfci.harvard.edu>) and
 Sasha Gusev (<alexander_gusev@dfci.harvard.edu>), and open a new thread in the [Issue
-Tracker](https://github.com/mancusolab/sushie/issues).
+Tracker](https://github.com/gusevlab/mrpeg/issues).
 
 
 ------------------------------------------------------------------------

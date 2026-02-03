@@ -22,7 +22,10 @@ Contents
    Overview <readme>
    Model <model>
    Users Manual <manual>
+   Input Formats <input_formats>
    Files <files>
+   Troubleshooting <troubleshooting>
+   Performance Guide <performance>
 
 .. toctree::
    :maxdepth: 2
