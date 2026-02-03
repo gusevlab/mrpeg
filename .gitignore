@@ -4,6 +4,7 @@
 # Development-specific
 __pycache__/
 .vscode
+.claude/
 *.metadata2.mmm
 
 tmp_results_*
