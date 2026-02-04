@@ -14,25 +14,7 @@ Installation Issues
 
 JAX and jaxlib binaries are not always available for the ARM architecture
 that Apple Silicon uses.  The recommended workaround is to initialize conda
-with ``miniforge`` (which ships ARM-native builds) and install ``cbgen``
-first:
-
-.. code-block:: bash
-
-   conda install -c conda-forge cbgen
-   pip install .
-
-If you still see errors like ``No matching distribution found for jaxlib``,
-try pinning to a version known to support your platform or install the CPU-
-only wheel explicitly:
-
-.. code-block:: bash
-
-   pip install jaxlib --no-binary :all:
-   pip install jax
-
-See the `JAX installation guide <https://github.com/google/jax#installation>`_
-for platform-specific instructions.
+with ``miniforge`` (which ships ARM-native builds).
 
 **``ModuleNotFoundError`` after ``pip install .``**
 
@@ -156,7 +138,8 @@ are still hitting memory limits:
 
 * Increase ``--top-signal`` filtering (e.g., ``0.001``) to reduce the number
   of non-zero perturbation entries and thus the number of instrument SNPs.
-* Run chromosomes separately using ``--chr``.
+* ``--perm-number`` controls the number of permutations for the null
+  distribution.  Reducing this speeds up inference linearly.
 * Use 32-bit precision: ``--jax-precision 32``.  This halves memory but may
   produce slightly less accurate estimates.
 

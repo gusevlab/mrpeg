@@ -1,7 +1,7 @@
-jax==0.4.13
-jaxlib==0.4.13
+jax==0.4.33
+jaxlib==0.4.33
 numpy>=1.23.0
 pandas==1.5.0
 pandas-plink==2.2.9
-scipy==1.9.3
+scipy==1.10
 intervaltree>=3.0

@@ -31,16 +31,10 @@ documentation.
 1. **Before installation**, we *highly* recommend to create a new environment using [conda](https://docs.conda.io/en/latest/) so that it will not affect the software versions of the other projects. For example, use following codes:
 
     ```bash
-    conda create -n env-mrpeg python=3.8
+    conda create -n env-mrpeg python=3.10
     ```
 
-    *We currently only support Python3.8+.*
-
-2. If you are using a Mac with an Apple M1 or newer chip, you should install `cbgen` package or other required pacakges from conda-forge first to ensure compatibility (see this [link](https://github.com/google/jax/issues/5501) for previous issue). One easy workaround is to initiate your conda using `miniforge`. **On most HPC systems**, this is usually not necessary.
-
-    ```bash
-    conda install -c conda-forge cbgen
-    ```
+2. If you are using a Mac with an Apple M1 or newer chip, you should initiate your conda using `miniforge` to ensure compatibility (see this [link](https://github.com/google/jax/issues/5501) for previous issue). **On most HPC systems**, this is usually not necessary.
 
 3. Last, users can download the latest repository and then use `pip`:
 
