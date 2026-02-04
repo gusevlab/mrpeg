@@ -16,7 +16,7 @@ with warnings.catch_warnings():
 
 from jax import config
 
-from . import closest, log, peg, signal
+from . import log, peg, signal
 
 warnings.filterwarnings("ignore")
 with warnings.catch_warnings():
@@ -24,7 +24,6 @@ with warnings.catch_warnings():
 
 __all__ = [
     "run_peg",
-    "run_closest",
     "run_signal",
     "_get_command_string",
 ]
@@ -143,56 +142,7 @@ def run_peg(args):
     return 0
 
 
-def run_closest(args):
-    """The umbrella function to find closest GWAS genes.
-
-    Args:
-        args: The command line parameter input.
-
-    """
-
-    try:
-        closest._parameter_check(args)
-
-        sig_gwas = closest._get_max_gwas(
-            args.gwas, args.gwas_cols, args.window, args.threshold
-        )
-        pot_genes = closest._process_potential(
-            sig_gwas, args.ref, args.ref_cols, args.keep
-        )
-        if not args.nearby:
-            closest_genes = closest._find_closest(sig_gwas, pot_genes)
-            closest_genes["trait"] = args.trait
-            suffix = ".gz" if args.compress else ""
-            closest_genes.to_csv(
-                f"{args.output}.closest.tsv{suffix}", sep="\t", index=False
-            )
-        else:
-            nearby_genes = closest._find_nearby(sig_gwas, pot_genes, args.window)
-            nearby_genes["trait"] = args.trait
-            suffix = ".gz" if args.compress else ""
-            nearby_genes.to_csv(
-                f"{args.output}.nearby.tsv{suffix}", sep="\t", index=False
-            )
-
-    except Exception as err:
-        import traceback
-
-        print(
-            "".join(
-                traceback.format_exception(
-                    etype=type(err), value=err, tb=err.__traceback__
-                )
-            )
-        )
-        log.logger.error(err)
-
-    finally:
-        log.logger.info(
-            "Finished Mr PEG finding closest gene. Thanks for using our software."
-            + " For bug reporting, suggestions, and comments, please go to https://github.com/gusevlab/mrpeg.",
-        )
-    return 0
+# NOTE: run_closest has been archived to archive/closest.py
 
 
 def run_signal(args):
@@ -473,135 +423,7 @@ def build_peg_parser(subp):
     return peg
 
 
-def build_closest_parser(subp):
-    # add imputation parser
-    closest = subp.add_parser(
-        "closest",
-        description=("Find closest GWAS genes",),
-    )
-
-    closest.add_argument(
-        "--gwas",
-        type=str,
-        required=True,
-        help=("Path to GWAS data file (tsv format, compressed or uncompressed)."),
-    )
-
-    # main arguments
-    closest.add_argument(
-        "--ref",
-        type=str,
-        required=True,
-        help=(
-            "Path to gene annotation file (tsv format, compressed or uncompressed).",
-            " For example, it can be a reference file downloaded from GENCODE.",
-        ),
-    )
-
-    closest.add_argument(
-        "--gwas-cols",
-        nargs=5,
-        default=["CHR", "SNP", "BP", "BETA", "SE"],
-        type=str,
-        help=(
-            "The column name in the GWAS files that indicate",
-            " chromosome, SNP ID, effect allele, non-effect allele, effect size, and standard error.",
-        ),
-    )
-
-    closest.add_argument(
-        "--ref-cols",
-        nargs=4,
-        default=["CHR", "P0", "P1", "ANNO"],
-        type=str,
-        help=(
-            "The column name in the gene annotation file that indicate",
-            " chromosome, start position, end position, and gene name.",
-        ),
-    )
-
-    closest.add_argument(
-        "--keep",
-        default=None,
-        type=str,
-        help=(
-            "Path to a file that includes the genes users want to find closest GWAS genes from.",
-            " For example, users sometimes want to find closest GWAS genes for a list of genes,",
-            " instead of all genes in the reference file.",
-        ),
-    )
-
-    closest.add_argument(
-        "--window",
-        default=1000,
-        type=int,
-        help=(
-            "Genomic window (in kb) around GWAS-significant SNPs used to define overlapping regions.",
-        ),
-    )
-
-    closest.add_argument(
-        "--threshold",
-        default=5e-8,
-        type=float,
-        help=("P value threshold to define GWAS SNPs.",),
-    )
-
-    closest.add_argument(
-        "--trait",
-        default="Trait",
-        help=(
-            "Trait name for better indexing in post-hoc analysis. Default is 'Trait'.",
-        ),
-    )
-
-    closest.add_argument(
-        "--nearby",
-        default=False,
-        type=bool,
-        help=(
-            "Indicator whether to find all nearby genes within the specified window. Default is False.",
-        ),
-    )
-
-    # misc options
-    closest.add_argument(
-        "--quiet",
-        default=False,
-        action="store_true",
-        help="Indicator to not print message to console. Default is False. Specify --quiet will store 'True' value.",
-    )
-
-    closest.add_argument(
-        "--verbose",
-        default=False,
-        action="store_true",
-        help=(
-            "Indicator to include debug information in the log. Default is False.",
-            " Specify --verbose will store 'True' value.",
-        ),
-    )
-
-    closest.add_argument(
-        "-c",
-        "--compress",
-        default=False,
-        action="store_true",
-        help=(
-            "Indicator to compress all output tsv files in tsv.gz.",
-            " Default is False. Specify --compress will store 'True' value to save disk space.",
-            " This command will not compress *.npy files.",
-        ),
-    )
-
-    closest.add_argument(
-        "-o",
-        "--output",
-        default="mrpeg_results",
-        help=("Prefix for output files. Default is 'mrpeg_results'.",),
-    )
-
-    return closest
+# NOTE: build_closest_parser has been archived to archive/closest.py
 
 
 def build_signal_parser(subp):
@@ -757,9 +579,6 @@ def _main(argsv):
 
     peg = build_peg_parser(subp)
     peg.set_defaults(func=run_peg)
-
-    closest = build_closest_parser(subp)
-    closest.set_defaults(func=run_closest)
 
     signal = build_signal_parser(subp)
     signal.set_defaults(func=run_signal)

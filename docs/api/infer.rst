@@ -1,7 +1,7 @@
 Infer
 ==============
 
-The API for Infer classes and functions in ``./sushie/infer.py`` file.
+The API for Infer classes and functions in ``./mrpeg/peg.py`` file.
 
 Classes
 ---------

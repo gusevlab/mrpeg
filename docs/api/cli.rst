@@ -1,7 +1,7 @@
 CLI
 ==============
 
-The API for command-line interface (CLI) functions in ``./sushie/cli.py`` file.
+The API for command-line interface (CLI) functions in ``./mrpeg/cli.py`` file.
 
 Functions
 ---------

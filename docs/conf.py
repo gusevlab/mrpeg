@@ -102,7 +102,6 @@ autodoc_class_signature = "separated"
 
 python_apigen_modules = {
     "mrpeg.peg": "api/peg/",
-    "mrpeg.closest": "api/closest/",
     "mrpeg.signal": "api/signal/",
     "mrpeg.cli": "api/cli/",
 }
@@ -111,7 +110,6 @@ python_apigen_default_groups = [
     (r".*:mrpeg.cli.*", "CLI Public-members"),
     (r".*:mrpeg.peg.*", "Infer Public-members"),
     (r".*:mrpeg.signal.*", "Annotation Public-members"),
-    (r".*:mrpeg.closest.*", "Closest Gene Public-members"),
 ]
 
 python_apigen_default_order = [

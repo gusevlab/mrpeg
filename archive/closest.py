@@ -1,6 +1,6 @@
 import os
 import warnings
-from typing import List
+from typing import List, Optional
 
 import numpy as np
 from scipy.stats import norm
@@ -43,7 +43,7 @@ def _parameter_check(
     return None
 
 
-def _get_max_gwas(gwas, gwas_cols, window, threshold) -> pd.DataFrame:
+def _get_max_gwas(gwas: str, gwas_cols: List[str], window: float, threshold: float) -> pd.DataFrame:
     df_gwas = pd.read_csv(gwas, sep="\t").dropna()
 
     log.logger.info(f"Reading GWAS with {df_gwas.shape[0]} SNPs.")
@@ -156,7 +156,7 @@ def _get_max_gwas(gwas, gwas_cols, window, threshold) -> pd.DataFrame:
     return res
 
 
-def _process_potential(merge, ref, ref_cols, keep) -> pd.DataFrame:
+def _process_potential(merge: pd.DataFrame, ref: str, ref_cols: List[str], keep: Optional[str]) -> pd.DataFrame:
     df_ref = pd.read_csv(ref, sep="\t").dropna()
 
     if not all(col in df_ref.columns for col in ref_cols):
@@ -209,7 +209,7 @@ def _process_potential(merge, ref, ref_cols, keep) -> pd.DataFrame:
     return df_ref
 
 
-def _find_closest(sig_gwas, pot_genes) -> pd.DataFrame:
+def _find_closest(sig_gwas: pd.DataFrame, pot_genes: pd.DataFrame) -> pd.DataFrame:
     closest = []
     for idx in range(sig_gwas.shape[0]):
         tmp_snp = sig_gwas.iloc[
@@ -249,7 +249,7 @@ def _find_closest(sig_gwas, pot_genes) -> pd.DataFrame:
     return closest
 
 
-def _find_nearby(sig_gwas, pot_genes, window) -> pd.DataFrame:
+def _find_nearby(sig_gwas: pd.DataFrame, pot_genes: pd.DataFrame, window: float) -> pd.DataFrame:
     nearby = []
     half_window = int(window * 1000 / 2)
     for idx in range(sig_gwas.shape[0]):
@@ -265,7 +265,7 @@ def _find_nearby(sig_gwas, pot_genes, window) -> pd.DataFrame:
         )
 
         overlap_pot = tmp_pot[
-            (tmp_pot["TSS"] <= int(P1)) & (tmp_pot["TES"] >= int(P0))
+            (tmp_pot["TSS"] <= int(P1.iloc[0])) & (tmp_pot["TES"] >= int(P0.iloc[0]))
         ].copy()
         overlap_pot["snp"] = tmp_snp.SNP.values[0]
         nearby.append(overlap_pot)

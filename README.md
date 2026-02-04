@@ -1,4 +1,4 @@
-[![Documentation-webpage](https://img.shields.io/badge/Docs-Available-brightgreen)](https://gusevlab.github.io/sushie/)
+[![Documentation-webpage](https://img.shields.io/badge/Docs-Available-brightgreen)](https://gusevlab.github.io/mrpeg/)
 [![Github](https://img.shields.io/github/stars/gusevlab/mrpeg?style=social)](https://github.com/gusevlab/mrpeg)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Project generated with PyScaffold](https://img.shields.io/badge/-PyScaffold-005CA0?logo=pyscaffold)](https://pyscaffold.org/)
@@ -31,16 +31,11 @@ documentation.
 1. **Before installation**, we *highly* recommend to create a new environment using [conda](https://docs.conda.io/en/latest/) so that it will not affect the software versions of the other projects. For example, use following codes:
 
     ```bash
-    conda create -n env-mrpeg python=3.8
+    conda create -n env-mrpeg python=3.10
+    conda activate env-mrpeg
     ```
 
-    *We currently only support Python3.8+.*
-
-2. If you are using a Mac with an Apple M1 or newer chip, you should install `cbgen` package or other required pacakges from conda-forge first to ensure compatibility (see this [link](https://github.com/google/jax/issues/5501) for previous issue). One easy workaround is to initiate your conda using `miniforge`. **On most HPC systems**, this is usually not necessary.
-
-    ```bash
-    conda install -c conda-forge cbgen
-    ```
+2. If you are using a Mac with an Apple M1 or newer chip, you should initiate your conda using `miniforge` to ensure compatibility (see this [link](https://github.com/google/jax/issues/5501) for previous issue). **On most HPC systems**, this is usually not necessary.
 
 3. Last, users can download the latest repository and then use `pip`:
 
@@ -52,7 +47,7 @@ documentation.
 
 ## Get Started with Example
 
-mrpwg software is very easy to use:
+mrpeg software is very easy to use:
 
 For performing inference:
 ``` bash
@@ -68,21 +63,7 @@ mrpeg peg --gwas example_gwas.tsv.gz \
   -o tmp_results_mediating_gene
 ```
 
-We also implement two functions for gene annotation.
-
-1. Find the GWAS closest genes:
-
-``` bash
-cd ./data/
-mrpeg closest --gwas example_gwas.tsv.gz \
-  --gwas_cols chrom snp pos beta se \
-  --ref ref_gene_info.tsv.gz \
-  --ref_cols CHR TSS TES ID2 \
-  --trait example \
-  -o tmp_results_closest
-```
-
-2. Compute the GWAS signals given gene annotations.
+We also implement a function to compute the GWAS signals given gene annotations.
 
 ``` bash
 cd ./data/
@@ -116,15 +97,16 @@ You can customize this function with your own ideas!
 
 ## Version History
 
-| Version | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-|---------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| 0.1     | Initial Release                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| Version | Description                                                                                                                                                                                                                                                                                     |
+|---------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| 0.2     | Added input format specifications, troubleshooting guide, and performance guide. Fixed documentation errors carried over from a previous project. Added missing `intervaltree` dependency. Added type hints to `closest` and `signal` modules. Added test suite with 50 unit tests. **This update was completely done using Claude Code with human verification.** |
+| 0.1     | Initial Release                                                                                                                                                                                                                                                                                 |
 
 ## Support
 
 For any questions, comments, bug reporting, and feature requests, please contact Zeyun Lu (<zeyun_lu@dfci.harvard.edu>) and
 Sasha Gusev (<alexander_gusev@dfci.harvard.edu>), and open a new thread in the [Issue
-Tracker](https://github.com/mancusolab/sushie/issues).
+Tracker](https://github.com/gusevlab/mrpeg/issues).
 
 
 ------------------------------------------------------------------------

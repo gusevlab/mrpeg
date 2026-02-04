@@ -11,15 +11,9 @@ Installation
 
    .. code-block:: bash
 
-      conda create -n env-mrpeg python=3.8
+      conda create -n env-mrpeg python=3.10
 
-   *We currently only support Python 3.8+.*
-
-2. If you are using a Mac with an Apple M1 or newer chip, you should install the ``cbgen`` package (or other required packages) from conda-forge first to ensure compatibility (see this `link <https://github.com/google/jax/issues/5501>`_ for a previous issue). One easy workaround is to initialize conda using ``miniforge``. **On most HPC systems**, this is usually not necessary.
-
-   .. code-block:: bash
-
-      conda install -c conda-forge cbgen
+2. If you are using a Mac with an Apple M1 or newer chip, you should  initialize conda using ``miniforge`` to ensure compatibility (see this `link <https://github.com/google/jax/issues/5501>`_ for a previous issue). **On most HPC systems**, this is usually not necessary.
 
 3. Finally, download the latest repository and install via ``pip``:
 
@@ -70,21 +64,7 @@ Performing inference
 Gene annotation
 ---------------
 
-We also implement two functions for gene annotation.
-
-1. Find the GWAS closest genes:
-
-   .. code-block:: bash
-
-      cd ./data/
-      mrpeg closest --gwas example_gwas.tsv.gz \
-        --gwas-cols chrom snp pos beta se \
-        --ref ref_gene_info.tsv.gz \
-        --ref-cols CHR TSS TES ID2 \
-        --trait example \
-        -o tmp_results_closest
-
-2. Compute the GWAS signals given gene annotations:
+We also implement a function for gene annotation to compute the GWAS signals given gene annotations:
 
    .. code-block:: bash
 

@@ -1,6 +1,6 @@
 import logging
 
-from . import cli, closest, log, peg, signal
+from . import cli, log, peg, signal
 
 
 # next 4 lines taken from
@@ -13,4 +13,4 @@ def _filter_absl_cpu_warning(record):
 
 logging.getLogger("absl").addFilter(_filter_absl_cpu_warning)
 
-__all__ = ["cli", "peg", "signal", "closest", "log"]
+__all__ = ["cli", "peg", "signal", "log"]

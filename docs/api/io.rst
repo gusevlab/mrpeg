@@ -1,7 +1,7 @@
 I/0
 ==============
 
-The API for Input and Output (I/O) classes and functions in ``./sushie/io.py`` file.
+The API for Input and Output (I/O) classes and functions (note: mrpeg currently has I/O functionality distributed across modules).
 
 Classes
 ---------
