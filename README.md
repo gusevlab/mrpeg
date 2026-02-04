@@ -32,6 +32,7 @@ documentation.
 
     ```bash
     conda create -n env-mrpeg python=3.10
+    conda activate env-mrpeg
     ```
 
 2. If you are using a Mac with an Apple M1 or newer chip, you should initiate your conda using `miniforge` to ensure compatibility (see this [link](https://github.com/google/jax/issues/5501) for previous issue). **On most HPC systems**, this is usually not necessary.
