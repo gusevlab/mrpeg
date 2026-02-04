@@ -430,8 +430,8 @@ def _process_raw(
     )
 
     if mr_ld:
-        ld = block_diag(*ld)
-        ld_new = jnp.array(ld)
+        ld_block = block_diag(*ld)
+        ld_new = jnp.array(ld_block)
         ld_subset = ld_new[df_wk["index"].values, :][:, df_wk["index"].values]
     else:
         ld_subset = jnp.eye(df_wk.shape[0])
