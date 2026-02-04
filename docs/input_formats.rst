@@ -13,7 +13,7 @@ data types, and concrete examples drawn from the bundled example data in
 GWAS Summary Statistics
 -----------------------------------------------------------
 
-Used by: ``mrpeg peg``, ``mrpeg closest``, ``mrpeg signal``
+Used by: ``mrpeg peg``, ``mrpeg signal``
 
 A tab-delimited text file (plain or gzip-compressed) containing per-SNP
 effect-size estimates from a genome-wide association study.  The column names
@@ -50,8 +50,8 @@ specify the actual header names in your file.
      - Standard error of ``BETA``.  Must be strictly positive; rows with
        SE ≤ 0 are removed automatically.
 
-``mrpeg closest`` and ``mrpeg signal`` expect **five** columns (the two
-allele columns are not needed because no allele harmonization is performed):
+``mrpeg signal`` expects **five** columns (the two allele columns are not
+needed because no allele harmonization is performed):
 
 .. list-table::
    :header-rows: 1
@@ -92,12 +92,11 @@ To use this file with ``mrpeg peg``:
    mrpeg peg --gwas example_gwas.tsv.gz \
      --gwas-cols chrom snp a1 a0 beta se ...
 
-To use with ``mrpeg closest`` or ``mrpeg signal`` (which need a ``BP``
-column instead of alleles):
+To use with ``mrpeg signal`` (which needs a ``BP`` column instead of alleles):
 
 .. code-block:: bash
 
-   mrpeg closest --gwas example_gwas.tsv.gz \
+   mrpeg signal --gwas example_gwas.tsv.gz \
      --gwas-cols chrom snp pos beta se ...
 
 -----------------------------------------------------------
@@ -212,36 +211,13 @@ thousands of both.
 Gene Annotation / Reference File
 -----------------------------------------------------------
 
-Used by: ``mrpeg closest``, ``mrpeg signal``
+Used by: ``mrpeg signal``
 
 A tab-delimited file (plain or gzip-compressed) that maps genes or
-genomic annotations to chromosomal coordinates.  The expected columns
-depend on the subcommand.
-
-``mrpeg closest`` expects **four** columns (specified via ``--ref-cols``):
-
-.. list-table::
-   :header-rows: 1
-   :widths: 15 12 60
-
-   * - Column
-     - Type
-     - Description
-   * - CHR
-     - int
-     - Chromosome number (1–22).
-   * - TSS
-     - int
-     - Transcription start site (base-pair position).
-   * - TES
-     - int
-     - Transcription end site (base-pair position).  Must be ≥ TSS.
-   * - GENE
-     - str
-     - Gene identifier (symbol or ENSEMBL ID).
+genomic annotations to chromosomal coordinates.
 
 ``mrpeg signal`` expects **four** columns (specified via ``--ref-cols``)
-that define annotation regions rather than gene bodies:
+that define annotation regions:
 
 .. list-table::
    :header-rows: 1
@@ -280,11 +256,6 @@ select the relevant four:
 
 .. code-block:: bash
 
-   # For mrpeg closest (gene body coordinates)
-   mrpeg closest --ref ref_gene_info.tsv.gz \
-     --ref-cols CHR TSS TES ID2 ...
-
-   # For mrpeg signal (flanked midpoint coordinates)
    mrpeg signal --ref ref_gene_info.tsv.gz \
      --ref-cols CHR P_MID_FLANK0 P_MID_FLANK1 ID2 ...
 
@@ -333,7 +304,7 @@ generated from 1000 Genomes EUR samples.
 Keep File (optional)
 -----------------------------------------------------------
 
-Used by: ``mrpeg closest`` (``--keep``), ``mrpeg signal`` (``--keep``)
+Used by: ``mrpeg signal`` (``--keep``)
 
 A single-column, tab-delimited text file with **no header**.  Each row
 contains one gene or annotation name that you want to restrict the analysis

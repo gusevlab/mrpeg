@@ -6,11 +6,9 @@ Output Files
 
 mrpeg produces different types of output files depending on which command is run. Users can compress output files by specifying ``--compress``.
 
-The output files consist of four main types:
+The output files consist of two main types:
 
 #. ``*.mrpeg.tsv`` - Main inference results from ``mrpeg peg``
-#. ``*.closest.tsv`` - Closest gene annotations from ``mrpeg closest``
-#. ``*.nearby.tsv`` - Nearby gene annotations from ``mrpeg closest --nearby``
 #. ``*.signal.tsv`` - GWAS signal summaries from ``mrpeg signal``
 
 .. _mrpegfile:
@@ -78,94 +76,6 @@ The ``mrpeg peg`` command outputs a ``*.mrpeg.tsv`` file containing the mediatio
 
 .. note::
    The ``gamma_null_p`` values are typically more conservative than ``gamma_p`` as they are based on permutation testing. Use these for controlling family-wise error rate in large-scale analyses.
-
-.. _closestfile:
-
-Closest Gene Annotations
--------------------------
-
-The ``mrpeg closest`` command outputs a ``*.closest.tsv`` file that identifies the closest gene to each genome-wide significant SNP.
-
-.. list-table::
-   :header-rows: 1
-
-   * - Column
-     - Type
-     - Examples
-     - Notes
-   * - CHR
-     - Integer
-     - 1, 22, 23
-     - Chromosome number
-   * - SNP
-     - String
-     - rs12345, snp_1_1000000
-     - SNP identifier
-   * - BP
-     - Integer
-     - 1000000
-     - Base pair position
-   * - BETA
-     - Float
-     - 0.05, -0.10
-     - GWAS effect size
-   * - SE
-     - Float
-     - 0.02
-     - GWAS standard error
-   * - GENE
-     - String
-     - ENSG00000123456, GENE1
-     - Closest gene identifier
-   * - trait
-     - String
-     - height, bmi
-     - The trait name specified with ``--trait``
-
-.. note::
-   If a SNP falls within a gene body (between TSS and TES), that gene is assigned. Otherwise, the gene with the closest transcription start or end site is assigned. Multiple genes may be assigned to a single SNP if they are equidistant.
-
-.. _nearbyfile:
-
-Nearby Gene Annotations
------------------------
-
-The ``mrpeg closest --nearby`` command outputs a ``*.nearby.tsv`` file that identifies all genes within a specified window of each genome-wide significant SNP.
-
-.. list-table::
-   :header-rows: 1
-
-   * - Column
-     - Type
-     - Examples
-     - Notes
-   * - CHR
-     - Integer
-     - 1, 22, 23
-     - Chromosome number
-   * - TSS
-     - Integer
-     - 1000000
-     - Transcription start site position
-   * - TES
-     - Integer
-     - 1050000
-     - Transcription end site position
-   * - GENE
-     - String
-     - ENSG00000123456, GENE1
-     - Gene identifier
-   * - snp
-     - String
-     - rs12345, snp_1_1000000
-     - SNP identifier within window
-   * - trait
-     - String
-     - height, bmi
-     - The trait name specified with ``--trait``
-
-.. note::
-   The window size is specified with ``--window`` in kilobases. Genes are included if their transcribed region (TSS to TES) overlaps with the window centered on each SNP.
 
 .. _signalfile:
 

@@ -50,15 +50,6 @@ file.  Print the headers and compare:
 Column names are **case-sensitive**.  If your file uses ``Chr`` but you wrote
 ``CHR``, the match will fail.
 
-**``GWAS data doesn't contain any significant hits.``** (``mrpeg closest``)
-
-No SNPs passed the significance threshold after computing Z-scores.  Try
-relaxing ``--threshold``:
-
-.. code-block:: bash
-
-   mrpeg closest --threshold 1e-5 ...
-
 **``GWAS data doesn't contain any SNPs after filtering on threshold.``** (``mrpeg signal``)
 
 Same cause as above.  ``mrpeg signal`` defaults ``--threshold`` to 1.0

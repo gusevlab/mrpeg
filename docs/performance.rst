@@ -19,11 +19,6 @@ mrpeg has three subcommands with different computational profiles:
    dominant cost is the permutation loop, which is accelerated by JAX and can
    run on GPU or TPU when available.
 
-``mrpeg closest``
-   Lightweight.  Reads GWAS summary statistics, identifies significant
-   regions, and finds the nearest gene in a reference annotation.  Runtime
-   is dominated by file I/O.
-
 ``mrpeg signal``
    Moderate.  Constructs an interval tree per chromosome and queries every
    significant SNP.  Memory usage scales with the number of annotations and

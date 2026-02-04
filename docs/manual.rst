@@ -64,21 +64,7 @@ Performing inference
 Gene annotation
 ---------------
 
-We also implement two functions for gene annotation.
-
-1. Find the GWAS closest genes:
-
-   .. code-block:: bash
-
-      cd ./data/
-      mrpeg closest --gwas example_gwas.tsv.gz \
-        --gwas-cols chrom snp pos beta se \
-        --ref ref_gene_info.tsv.gz \
-        --ref-cols CHR TSS TES ID2 \
-        --trait example \
-        -o tmp_results_closest
-
-2. Compute the GWAS signals given gene annotations:
+We also implement a function for gene annotation to compute the GWAS signals given gene annotations:
 
    .. code-block:: bash
 
