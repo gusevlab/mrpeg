@@ -62,21 +62,7 @@ mrpeg peg --gwas example_gwas.tsv.gz \
   -o tmp_results_mediating_gene
 ```
 
-We also implement two functions for gene annotation.
-
-1. Find the GWAS closest genes:
-
-``` bash
-cd ./data/
-mrpeg closest --gwas example_gwas.tsv.gz \
-  --gwas_cols chrom snp pos beta se \
-  --ref ref_gene_info.tsv.gz \
-  --ref_cols CHR TSS TES ID2 \
-  --trait example \
-  -o tmp_results_closest
-```
-
-2. Compute the GWAS signals given gene annotations.
+We also implement a function to compute the GWAS signals given gene annotations.
 
 ``` bash
 cd ./data/

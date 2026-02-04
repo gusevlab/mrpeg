@@ -33,8 +33,6 @@ Contents
 
    api/cli.rst
    api/infer.rst
-   api/io.rst
-   api/utils.rst
 
 .. toctree::
    :maxdepth: 2
