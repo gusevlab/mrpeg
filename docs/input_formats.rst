@@ -207,6 +207,34 @@ thousands of both.
    inference.  Downstream genes that end up with fewer than ``--min-snps``
    (default 10) non-zero instrument SNPs are skipped entirely.
 
+Pre-computed Perturbation Matrices
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+For convenience, we ship two pre-computed gene-to-gene effect size matrices
+in the ``misc/`` folder that can be passed directly to ``mrpeg peg`` via
+``--perturb``.  Both were estimated with
+`FR-Perturb <https://github.com/douglasyao/fr-perturb>`_:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 20 15 15 25
+
+   * - File
+     - Cell line
+     - Upstream genes
+     - Downstream genes
+     - Source
+   * - ``misc/Yao_MCL.tsv.gz``
+     - Macrophage (MCL)
+     - 600
+     - 16,952
+     - `Yao et al., Nature Biotechnology, 2023 <https://www.nature.com/articles/s41587-023-01964-9>`_
+   * - ``misc/Replogle_K562.tsv.gz``
+     - K562
+     - 2,058 (genome-wide essential)
+     - 8,563
+     - `Replogle et al., Cell, 2022 <https://www.cell.com/cell/fulltext/S0092-8674(22)00597-9>`_
+
 -----------------------------------------------------------
 Gene Annotation / Reference File
 -----------------------------------------------------------

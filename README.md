@@ -95,6 +95,13 @@ infer_peg(beta=betas, se=ses, eqtl=eqtls, perturb=perturbs, ld=lds)
 
 You can customize this function with your own ideas!
 
+## Pre-computed Perturb-seq Effect Size Matrices
+
+We provide two pre-computed gene-to-gene perturbation effect size matrices in the [misc/](misc/) folder that users can plug directly into `mrpeg peg` via `--perturb`. Both were estimated with [FR-Perturb](https://github.com/douglasyao/fr-perturb):
+
+- [misc/Yao_MCL.tsv.gz](misc/Yao_MCL.tsv.gz) — Macrophage cell line (MCL) screen from [Yao et al., *Nature Biotechnology*, 2023](https://www.nature.com/articles/s41587-023-01964-9). 600 upstream (perturbed) genes × 16,952 downstream genes.
+- [misc/Replogle_K562.tsv.gz](misc/Replogle_K562.tsv.gz) — K562 genome-wide essential gene screen from [Replogle et al., *Cell*, 2022](https://www.cell.com/cell/fulltext/S0092-8674(22)00597-9). 2,058 upstream genes × 8,563 downstream genes.
+
 ## Version History
 
 | Version | Description                                                                                                                                                                                                                                                                                     |
